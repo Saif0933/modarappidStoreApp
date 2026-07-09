@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/banner_slider.dart';
@@ -17,7 +18,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     // Watch states
     final products = ref.watch(productsProvider);
     final wishlist = ref.watch(wishlistProvider);
@@ -38,12 +39,36 @@ class HomePage extends ConsumerWidget {
 
     // Categories List (Fashion)
     final List<Map<String, String>> categories = [
-      {'title': 'Jackets', 'image': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=100'},
-      {'title': 'Hoodies', 'image': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=100'},
-      {'title': 'Jeans', 'image': 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100'},
-      {'title': 'Footwear', 'image': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100'},
-      {'title': 'Dresses', 'image': 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=100'},
-      {'title': 'Accessories', 'image': 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100'},
+      {
+        'title': 'Jackets',
+        'image':
+            'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=100',
+      },
+      {
+        'title': 'Hoodies',
+        'image':
+            'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=100',
+      },
+      {
+        'title': 'Jeans',
+        'image':
+            'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100',
+      },
+      {
+        'title': 'Footwear',
+        'image':
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100',
+      },
+      {
+        'title': 'Dresses',
+        'image':
+            'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=100',
+      },
+      {
+        'title': 'Accessories',
+        'image':
+            'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100',
+      },
     ];
 
     return Scaffold(
@@ -67,7 +92,9 @@ class HomePage extends ConsumerWidget {
                         Text(
                           'Good Morning,',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                         Text(
@@ -83,16 +110,25 @@ class HomePage extends ConsumerWidget {
                           onTap: () => context.push('/address-list'),
                           child: Row(
                             children: [
-                              const Icon(Icons.location_on_rounded, size: 16, color: AppColors.accent),
+                              const Icon(
+                                Icons.location_on_rounded,
+                                size: 16,
+                                color: Color.fromARGB(255, 71, 22, 249),
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                selectedAddress?.addressLine ?? 'Select location',
+                                selectedAddress?.addressLine ??
+                                    'Select location',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.primary),
+                              const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
                             ],
                           ),
                         ),
@@ -106,11 +142,16 @@ class HomePage extends ConsumerWidget {
                         shape: BoxShape.circle,
                         boxShadow: AppConstants.lowShadow,
                         border: Border.all(
-                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                          color: isDark
+                              ? AppColors.borderDark
+                              : AppColors.borderLight,
                         ),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary),
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: AppColors.primary,
+                        ),
                         onPressed: () => context.push('/notifications'),
                       ),
                     ),
@@ -120,7 +161,9 @@ class HomePage extends ConsumerWidget {
 
               // 2. Search Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spaceM,
+                ),
                 child: CustomSearchBar(
                   readOnly: true,
                   onTap: () => context.push('/search'),
@@ -138,17 +181,24 @@ class HomePage extends ConsumerWidget {
 
               // 4. Categories Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spaceM,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Categories',
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/categories'),
-                      child: const Text('View All', style: TextStyle(color: AppColors.primary)),
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
                     ),
                   ],
                 ),
@@ -158,7 +208,9 @@ class HomePage extends ConsumerWidget {
                 height: 104,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.spaceM,
+                  ),
                   physics: const BouncingScrollPhysics(),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
@@ -168,7 +220,8 @@ class HomePage extends ConsumerWidget {
                       child: CategoryCard(
                         title: cat['title']!,
                         imagePath: cat['image']!,
-                        onTap: () => context.go('/categories'), // Takes to category list
+                        onTap: () =>
+                            context.go('/categories'), // Takes to category list
                       ),
                     );
                   },
@@ -211,7 +264,7 @@ class HomePage extends ConsumerWidget {
                 productList: recentlyViewed,
                 wishlist: wishlist,
               ),
-              
+
               const SizedBox(height: AppConstants.spaceXXL),
             ],
           ),
@@ -234,15 +287,24 @@ class HomePage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.spaceM,
+            vertical: AppConstants.spaceS,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.primary),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
             ],
           ),
         ),
@@ -250,13 +312,19 @@ class HomePage extends ConsumerWidget {
           height: 250,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spaceM,
+            ),
             physics: const BouncingScrollPhysics(),
             itemCount: productList.length,
             itemBuilder: (context, index) {
               final product = productList[index];
               return Padding(
-                padding: const EdgeInsets.only(right: AppConstants.spaceM, bottom: 8.0, top: 4.0),
+                padding: const EdgeInsets.only(
+                  right: AppConstants.spaceM,
+                  bottom: 8.0,
+                  top: 4.0,
+                ),
                 child: SizedBox(
                   width: 160,
                   child: ProductCard(
@@ -269,18 +337,21 @@ class HomePage extends ConsumerWidget {
                     reviewsCount: product.reviewsCount,
                     weight: product.weight,
                     isWishlisted: wishlist.contains(product.id),
-                    onTap: () => context.push('/product-details', extra: {
-                      'id': product.id,
-                      'title': product.title,
-                      'imageUrl': product.imageUrl,
-                      'price': product.price,
-                      'originalPrice': product.originalPrice,
-                      'rating': product.rating,
-                      'reviewsCount': product.reviewsCount,
-                      'weight': product.weight,
-                      'description': product.description,
-                      'category': product.category,
-                    }),
+                    onTap: () => context.push(
+                      '/product-details',
+                      extra: {
+                        'id': product.id,
+                        'title': product.title,
+                        'imageUrl': product.imageUrl,
+                        'price': product.price,
+                        'originalPrice': product.originalPrice,
+                        'rating': product.rating,
+                        'reviewsCount': product.reviewsCount,
+                        'weight': product.weight,
+                        'description': product.description,
+                        'category': product.category,
+                      },
+                    ),
                     onAddToCart: () {
                       ref.read(cartProvider.notifier).addToCart(product);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -292,7 +363,9 @@ class HomePage extends ConsumerWidget {
                       );
                     },
                     onWishlistTap: () {
-                      ref.read(wishlistProvider.notifier).toggleWishlist(product.id);
+                      ref
+                          .read(wishlistProvider.notifier)
+                          .toggleWishlist(product.id);
                     },
                   ),
                 ),
