@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/banner_slider.dart';
 import '../../../../core/widgets/category_card.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
+import '../../../../core/widgets/discount_offers_banner.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../../../shared/providers/products_provider.dart';
 
@@ -129,6 +130,10 @@ class HomePage extends ConsumerWidget {
 
               // 3. Carousel Banners
               BannerSlider(imageUrls: bannerUrls),
+              const SizedBox(height: AppConstants.spaceL),
+
+              // 3.5. Discount Offers Section
+              const DiscountOffersBanner(),
               const SizedBox(height: AppConstants.spaceL),
 
               // 4. Categories Section
