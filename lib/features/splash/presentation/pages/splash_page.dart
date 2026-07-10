@@ -17,7 +17,17 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Listen to initialization provider
+    // Watch the initialization state. If it is already resolved, trigger post-frame navigation.
+    final splashState = ref.watch(splashInitProvider);
+    if (splashState.hasValue && splashState.value == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.go('/onboarding');
+        }
+      });
+    }
+
+    // Listen to initialization provider for transitions
     ref.listen<AsyncValue<bool>>(splashInitProvider, (previous, next) {
       if (next.hasValue && next.value == true) {
         context.go('/onboarding');
@@ -199,26 +209,20 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(1.5),
                   ),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(1.5),
+                  child: Container(
+                    width: 140,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  )
+                      .animate()
+                      .scaleX(
+                        duration: 2500.ms,
+                        alignment: Alignment.centerLeft,
+                        curve: Curves.easeInOut,
                       ),
-                    )
-                        .animate(onPlay: (controller) => controller.forward())
-                        .custom(
-                          duration: 2500.ms,
-                          builder: (context, value, child) {
-                            return SizedBox(
-                              width: 140 * value,
-                              child: child,
-                            );
-                          },
-                        ),
-                  ),
                 )
                     .animate()
                     .fade(duration: 400.ms, delay: 700.ms),

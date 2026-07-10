@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -11,11 +13,43 @@ import '../../../../core/widgets/discount_offers_banner.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../../../shared/providers/products_provider.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  late final ScrollController _scrollController;
+  double _scrollOffset = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      if (_scrollController.offset != _scrollOffset) {
+        setState(() {
+          _scrollOffset = _scrollController.offset;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -71,203 +105,310 @@ class HomePage extends ConsumerWidget {
       },
     ];
 
+    // Sticky visibility flags
+    final bool showStickySearch = _scrollOffset > 100;
+    final bool showStickyCategories = _scrollOffset > 520;
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Custom App Bar / Header
-              Padding(
-                padding: const EdgeInsets.all(AppConstants.spaceM),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Greeting & Location
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
+          children: [
+            // 1. Scrollable Main Content
+            SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Greeting & Custom App Bar
+                  Padding(
+                    padding: const EdgeInsets.all(AppConstants.spaceM),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Good Morning,',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Good Morning,',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                            Text(
+                              'Saif Al-Islam 👋',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () => context.push('/address-list'),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    size: 16,
+                                    color: Color.fromARGB(255, 71, 22, 249),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    selectedAddress?.addressLine ??
+                                        'Select location',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Saif Al-Islam 👋',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+
+                        // Notification Icon
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.surfaceDark : Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: AppConstants.lowShadow,
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.borderLight,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Location Picker Link
-                        GestureDetector(
-                          onTap: () => context.push('/address-list'),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on_rounded,
-                                size: 16,
-                                color: Color.fromARGB(255, 71, 22, 249),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                selectedAddress?.addressLine ??
-                                    'Select location',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                            ],
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none_rounded,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: () => context.push('/notifications'),
                           ),
                         ),
                       ],
                     ),
+                  ),
 
-                    // Notification Icon
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: AppConstants.lowShadow,
-                        border: Border.all(
-                          color: isDark
-                              ? AppColors.borderDark
-                              : AppColors.borderLight,
+                  // Original Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spaceM,
+                    ),
+                    child: CustomSearchBar(
+                      readOnly: true,
+                      onTap: () => context.push('/search'),
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spaceL),
+
+                  // Carousel Banners
+                  BannerSlider(imageUrls: bannerUrls),
+                  const SizedBox(height: AppConstants.spaceL),
+
+                  // Discount Offers Section
+                  const DiscountOffersBanner(),
+                  const SizedBox(height: AppConstants.spaceL),
+
+                  // Original Categories Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spaceM,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Categories',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: AppColors.primary,
+                        TextButton(
+                          onPressed: () => context.go('/categories'),
+                          child: const Text(
+                            'View All',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
                         ),
-                        onPressed: () => context.push('/notifications'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spaceS),
+                  SizedBox(
+                    height: 104,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppConstants.spaceM,
                       ),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final cat = categories[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 18.0),
+                          child: CategoryCard(
+                            title: cat['title']!,
+                            imagePath: cat['image']!,
+                            onTap: () => context.go('/categories'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spaceL),
+
+                  // Popular Products (Horizontal Slider)
+                  _buildProductSection(
+                    context: context,
+                    ref: ref,
+                    title: 'Popular Products',
+                    productList: popularProducts,
+                    wishlist: wishlist,
+                  ),
+
+                  // Recommended Products (Horizontal Slider)
+                  _buildProductSection(
+                    context: context,
+                    ref: ref,
+                    title: 'Recommended For You',
+                    productList: recommendedProducts,
+                    wishlist: wishlist,
+                  ),
+
+                  // Trending Products (Horizontal Slider)
+                  _buildProductSection(
+                    context: context,
+                    ref: ref,
+                    title: 'Trending Right Now',
+                    productList: trendingProducts,
+                    wishlist: wishlist,
+                  ),
+
+                  // Recently Viewed (Horizontal Slider)
+                  _buildProductSection(
+                    context: context,
+                    ref: ref,
+                    title: 'Recently Viewed',
+                    productList: recentlyViewed,
+                    wishlist: wishlist,
+                  ),
+
+                  const SizedBox(height: AppConstants.spaceXXL),
+                ],
+              ),
+            ),
+
+            // 2. Sticky Search Bar Overlay
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              top: showStickySearch ? 0 : -80,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.bgDark : AppColors.bgLight,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ),
-
-              // 2. Search Bar
-              Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppConstants.spaceM,
+                  vertical: 10,
                 ),
                 child: CustomSearchBar(
                   readOnly: true,
                   onTap: () => context.push('/search'),
                 ),
               ),
-              const SizedBox(height: AppConstants.spaceL),
+            ),
 
-              // 3. Carousel Banners
-              BannerSlider(imageUrls: bannerUrls),
-              const SizedBox(height: AppConstants.spaceL),
-
-              // 3.5. Discount Offers Section
-              const DiscountOffersBanner(),
-              const SizedBox(height: AppConstants.spaceL),
-
-              // 4. Categories Section
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spaceM,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Categories',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+            // 3. Sticky Categories Chip List Overlay
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              top: showStickyCategories ? 70 : -140,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.bgDark : AppColors.bgLight,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark ? AppColors.borderDark : Colors.grey.shade200,
+                      width: 1,
                     ),
-                    TextButton(
-                      onPressed: () => context.go('/categories'),
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: AppConstants.spaceS),
-              SizedBox(
-                height: 104,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.spaceM,
+                padding: const EdgeInsets.only(bottom: 10, top: 4),
+                child: SizedBox(
+                  height: 38,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spaceM,
+                    ),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = categories[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ActionChip(
+                          label: Text(
+                            cat['title']!,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          backgroundColor: isDark
+                              ? AppColors.surfaceDark
+                              : Colors.grey.shade100,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100),
+                            side: BorderSide(
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : Colors.grey.shade200,
+                            ),
+                          ),
+                          onPressed: () => context.go('/categories'),
+                        ),
+                      );
+                    },
                   ),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final cat = categories[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 18.0),
-                      child: CategoryCard(
-                        title: cat['title']!,
-                        imagePath: cat['image']!,
-                        onTap: () =>
-                            context.go('/categories'), // Takes to category list
-                      ),
-                    );
-                  },
                 ),
               ),
-              const SizedBox(height: AppConstants.spaceL),
-
-              // 5. Popular Products (Horizontal Slider)
-              _buildProductSection(
-                context: context,
-                ref: ref,
-                title: 'Popular Products',
-                productList: popularProducts,
-                wishlist: wishlist,
-              ),
-
-              // 6. Recommended Products (Horizontal Slider)
-              _buildProductSection(
-                context: context,
-                ref: ref,
-                title: 'Recommended For You',
-                productList: recommendedProducts,
-                wishlist: wishlist,
-              ),
-
-              // 7. Trending Products (Horizontal Slider)
-              _buildProductSection(
-                context: context,
-                ref: ref,
-                title: 'Trending Right Now',
-                productList: trendingProducts,
-                wishlist: wishlist,
-              ),
-
-              // 8. Recently Viewed (Horizontal Slider)
-              _buildProductSection(
-                context: context,
-                ref: ref,
-                title: 'Recently Viewed',
-                productList: recentlyViewed,
-                wishlist: wishlist,
-              ),
-
-              const SizedBox(height: AppConstants.spaceXXL),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

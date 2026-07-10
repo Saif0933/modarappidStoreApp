@@ -1,32 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'route_names.dart';
 
-// Import pages (we will create these files shortly)
-import '../../features/splash/presentation/pages/splash_page.dart';
-import '../../features/auth/presentation/pages/onboarding_page.dart';
+import '../../features/address/presentation/pages/add_address_page.dart';
+import '../../features/address/presentation/pages/address_list_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
-import '../../features/home/presentation/pages/main_layout.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/category/presentation/pages/category_page.dart';
-import '../../features/wishlist/presentation/pages/wishlist_page.dart';
 import '../../features/cart/presentation/pages/cart_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/search/presentation/pages/search_page.dart';
-import '../../features/notification/presentation/pages/notification_page.dart';
-import '../../features/product/presentation/pages/product_details_page.dart';
 import '../../features/cart/presentation/pages/checkout_page.dart';
 import '../../features/cart/presentation/pages/order_success_page.dart';
+import '../../features/category/presentation/pages/category_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/home/presentation/pages/main_layout.dart';
+import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/orders/presentation/pages/order_history_page.dart';
 import '../../features/orders/presentation/pages/order_tracking_page.dart';
-import '../../features/address/presentation/pages/address_list_page.dart';
-import '../../features/address/presentation/pages/add_address_page.dart';
+import '../../features/product/presentation/pages/product_details_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+// Import pages (we will create these files shortly)
+import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../features/wishlist/presentation/pages/wishlist_page.dart';
+import 'route_names.dart';
 
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
+final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shell',
+);
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -56,7 +60,7 @@ final GoRouter appRouter = GoRouter(
         return OtpPage(phoneNumber: phone);
       },
     ),
-    
+
     // ShellRoute for tabs
     ShellRoute(
       navigatorKey: shellNavigatorKey,

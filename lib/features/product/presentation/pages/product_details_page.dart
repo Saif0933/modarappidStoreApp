@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/network_image_widget.dart';
@@ -11,10 +12,7 @@ import '../../../../shared/providers/products_provider.dart';
 class ProductDetailsPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> productData;
 
-  const ProductDetailsPage({
-    super.key,
-    required this.productData,
-  });
+  const ProductDetailsPage({super.key, required this.productData});
 
   @override
   ConsumerState<ProductDetailsPage> createState() => _ProductDetailsPageState();
@@ -23,7 +21,7 @@ class ProductDetailsPage extends ConsumerStatefulWidget {
 class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   int _quantity = 1;
   String _selectedWeight = '';
-  
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +46,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     // Watch items for cart & wishlist state
     final wishlist = ref.watch(wishlistProvider);
     final allProducts = ref.watch(productsProvider);
-    
+
     // Filter similar products
     final similarProducts = allProducts
         .where((p) => p.category == category && p.id != id)
@@ -57,7 +55,12 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     // Map categories for UI weight selector list
     final List<String> weightOptions = [
       _selectedWeight,
-      if (_selectedWeight.contains('kg')) '2 kg' else if (_selectedWeight.contains('g')) '1 kg' else 'Standard Pack',
+      if (_selectedWeight.contains('kg'))
+        '2 kg'
+      else if (_selectedWeight.contains('g'))
+        '1 kg'
+      else
+        'Standard Pack',
       if (_selectedWeight.contains('kg')) '5 kg' else 'Combo Pack',
     ];
 
@@ -82,7 +85,10 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           children: [
             // Top Navigation & Action Row
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppConstants.spaceM,
+                vertical: AppConstants.spaceS,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -94,18 +100,25 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       boxShadow: AppConstants.lowShadow,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                      ),
                       onPressed: () => context.pop(),
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
                     ),
                   ),
-                  
+
                   // Title
                   Text(
                     'Product Details',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  
+
                   // Wishlist Button
                   Container(
                     decoration: BoxDecoration(
@@ -115,8 +128,12 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     ),
                     child: IconButton(
                       icon: Icon(
-                        wishlist.contains(id) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: wishlist.contains(id) ? Colors.red : AppColors.primary,
+                        wishlist.contains(id)
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: wishlist.contains(id)
+                            ? Colors.red
+                            : AppColors.primary,
                       ),
                       onPressed: () {
                         ref.read(wishlistProvider.notifier).toggleWishlist(id);
@@ -131,7 +148,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spaceM,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -139,19 +158,27 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     Center(
                       child: Container(
                         height: 280,
-                        margin: const EdgeInsets.symmetric(vertical: AppConstants.spaceM),
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AppConstants.spaceM,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.surfaceDark : Colors.white,
-                          borderRadius: BorderRadius.circular(AppConstants.radiusXL),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusXL,
+                          ),
                           boxShadow: AppConstants.lowShadow,
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusXL),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusXL,
+                          ),
                           child: Stack(
                             children: [
                               Positioned.fill(
                                 child: Padding(
-                                  padding: const EdgeInsets.all(AppConstants.spaceL),
+                                  padding: const EdgeInsets.all(
+                                    AppConstants.spaceL,
+                                  ),
                                   child: NetworkImageWidget(
                                     imageUrl: imageUrl,
                                     fit: BoxFit.contain,
@@ -159,22 +186,29 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                                 ),
                               ),
                               // Discount badge
-                              if (originalPrice != null && originalPrice > price)
+                              if (originalPrice != null &&
+                                  originalPrice > price)
                                 Positioned(
                                   top: 16,
                                   left: 16,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.accent,
-                                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                                      borderRadius: BorderRadius.circular(
+                                        AppConstants.radiusM,
+                                      ),
                                     ),
                                     child: Text(
                                       '${(((originalPrice - price) / originalPrice) * 100).round()}% OFF',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -213,7 +247,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                             ),
                           ],
                         ),
-                        
+
                         // Price Block
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -223,7 +257,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                                 '\$${originalPrice.toStringAsFixed(2)}',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   decoration: TextDecoration.lineThrough,
-                                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                  color: isDark
+                                      ? AppColors.textMutedDark
+                                      : AppColors.textMutedLight,
                                 ),
                               ),
                             Text(
@@ -243,14 +279,23 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.warning.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusS,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                              const Icon(
+                                Icons.star_rounded,
+                                color: AppColors.warning,
+                                size: 16,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 rating.toString(),
@@ -266,7 +311,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                         Text(
                           '$reviewsCount reviews',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                       ],
@@ -276,7 +323,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     // Weight Size Selector
                     Text(
                       'Select Weight / Size',
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -291,24 +340,35 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? AppColors.primary 
-                                    : (isDark ? AppColors.surfaceDark : Colors.white),
-                                borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : (isDark
+                                          ? AppColors.surfaceDark
+                                          : Colors.white),
+                                borderRadius: BorderRadius.circular(
+                                  AppConstants.radiusM,
+                                ),
                                 border: Border.all(
-                                  color: isSelected 
-                                      ? AppColors.primary 
-                                      : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : (isDark
+                                            ? AppColors.borderDark
+                                            : AppColors.borderLight),
                                 ),
                               ),
                               child: Text(
                                 weightOption,
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: isSelected 
-                                      ? Colors.white 
-                                      : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark
+                                            ? AppColors.textPrimaryDark
+                                            : AppColors.textPrimaryLight),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -322,14 +382,14 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     // Product Description
                     Text(
                       'Product Description',
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       description,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        height: 1.5,
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                     ),
                     const SizedBox(height: 24),
 
@@ -339,7 +399,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       children: [
                         Text(
                           'Quantity',
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         QuantitySelector(
                           quantity: _quantity,
@@ -357,7 +419,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     if (similarProducts.isNotEmpty) ...[
                       Text(
                         'Similar Products',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
@@ -369,7 +433,10 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                           itemBuilder: (context, index) {
                             final sp = similarProducts[index];
                             return Padding(
-                              padding: const EdgeInsets.only(right: AppConstants.spaceM, bottom: 8.0),
+                              padding: const EdgeInsets.only(
+                                right: AppConstants.spaceM,
+                                bottom: 8.0,
+                              ),
                               child: SizedBox(
                                 width: 150,
                                 child: ProductCard(
@@ -383,24 +450,31 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                                   weight: sp.weight,
                                   isWishlisted: wishlist.contains(sp.id),
                                   onAddToCart: () {
-                                    ref.read(cartProvider.notifier).addToCart(sp);
+                                    ref
+                                        .read(cartProvider.notifier)
+                                        .addToCart(sp);
                                   },
                                   onWishlistTap: () {
-                                    ref.read(wishlistProvider.notifier).toggleWishlist(sp.id);
+                                    ref
+                                        .read(wishlistProvider.notifier)
+                                        .toggleWishlist(sp.id);
                                   },
                                   onTap: () {
-                                    context.pushReplacement('/product-details', extra: {
-                                      'id': sp.id,
-                                      'title': sp.title,
-                                      'imageUrl': sp.imageUrl,
-                                      'price': sp.price,
-                                      'originalPrice': sp.originalPrice,
-                                      'rating': sp.rating,
-                                      'reviewsCount': sp.reviewsCount,
-                                      'weight': sp.weight,
-                                      'description': sp.description,
-                                      'category': sp.category,
-                                    });
+                                    context.pushReplacement(
+                                      '/product-details',
+                                      extra: {
+                                        'id': sp.id,
+                                        'title': sp.title,
+                                        'imageUrl': sp.imageUrl,
+                                        'price': sp.price,
+                                        'originalPrice': sp.originalPrice,
+                                        'rating': sp.rating,
+                                        'reviewsCount': sp.reviewsCount,
+                                        'weight': sp.weight,
+                                        'description': sp.description,
+                                        'category': sp.category,
+                                      },
+                                    );
                                   },
                                 ),
                               ),
@@ -422,7 +496,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                 color: isDark ? AppColors.surfaceDark : Colors.white,
                 border: Border(
                   top: BorderSide(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    color: isDark
+                        ? AppColors.borderDark
+                        : AppColors.borderLight,
                   ),
                 ),
               ),
@@ -433,9 +509,14 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 52),
-                        side: const BorderSide(color: AppColors.primary, width: 1.5),
+                        side: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusM,
+                          ),
                         ),
                       ),
                       child: Text(
@@ -446,10 +527,14 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                         ),
                       ),
                       onPressed: () {
-                        ref.read(cartProvider.notifier).addToCart(product, qty: _quantity);
+                        ref
+                            .read(cartProvider.notifier)
+                            .addToCart(product, qty: _quantity);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('$title ($_quantity items) added to cart!'),
+                            content: Text(
+                              '$title ($_quantity items) added to cart!',
+                            ),
                             duration: const Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -458,7 +543,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   // Buy Now filled button
                   Expanded(
                     child: ElevatedButton(
@@ -466,7 +551,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                         backgroundColor: AppColors.primary,
                         minimumSize: const Size(double.infinity, 52),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusM,
+                          ),
                         ),
                       ),
                       child: Text(
@@ -477,7 +564,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                         ),
                       ),
                       onPressed: () {
-                        ref.read(cartProvider.notifier).addToCart(product, qty: _quantity);
+                        ref
+                            .read(cartProvider.notifier)
+                            .addToCart(product, qty: _quantity);
                         context.push('/checkout');
                       },
                     ),

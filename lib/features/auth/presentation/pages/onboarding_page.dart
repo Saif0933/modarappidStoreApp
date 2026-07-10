@@ -180,8 +180,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               )
                                   .animate()
                                   .scale(duration: 600.ms, curve: Curves.easeOutBack)
-                                  .then()
-                                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
                                   .move(duration: 1500.ms, begin: const Offset(0, -4), end: const Offset(0, 4), curve: Curves.easeInOutQuad),
                             ],
                           ),
@@ -285,6 +283,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
                         elevation: 4,
                         shadowColor: AppColors.primary.withOpacity(0.3),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

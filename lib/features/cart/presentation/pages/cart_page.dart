@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_constants.dart';
@@ -29,6 +31,7 @@ class _CartPageState extends ConsumerState<CartPage> {
   void _applyCoupon(double subtotal) {
     final code = _couponController.text.trim().toUpperCase();
     if (code == 'SAVE20') {
+      HapticFeedback.mediumImpact();
       setState(() {
         _couponApplied = true;
         _couponDiscount = subtotal * 0.20; // 20% discount
@@ -41,6 +44,7 @@ class _CartPageState extends ConsumerState<CartPage> {
         ),
       );
     } else {
+      HapticFeedback.vibrate();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Invalid Coupon Code! Try "SAVE20".'),
@@ -67,13 +71,15 @@ class _CartPageState extends ConsumerState<CartPage> {
           title: const Text('My Cart', style: TextStyle(fontWeight: FontWeight.bold)),
           elevation: 0,
         ),
-        body: EmptyWidget(
-          icon: Icons.shopping_cart_outlined,
-          title: 'Your Cart is Empty',
-          description: 'Looks like you haven\'t added any items to your cart yet.',
-          buttonText: 'Start Shopping',
-          onButtonPressed: () => context.go('/home'),
-        ),
+        body: Center(
+          child: EmptyWidget(
+            icon: Icons.shopping_cart_outlined,
+            title: 'Your Cart is Empty',
+            description: 'Looks like you haven\'t added any items to your cart yet.',
+            buttonText: 'Start Shopping',
+            onButtonPressed: () => context.go('/home'),
+          ),
+        ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack),
       );
     }
 
@@ -100,101 +106,171 @@ class _CartPageState extends ConsumerState<CartPage> {
                 itemCount: cartList.length,
                 itemBuilder: (context, index) {
                   final item = cartList[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : Colors.white,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  return Dismissible(
+                    key: Key(item.product.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 24.0),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
                       ),
-                      boxShadow: AppConstants.lowShadow,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Remove',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.delete_sweep_rounded,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Image
-                        NetworkImageWidget(
-                          imageUrl: item.product.imageUrl,
-                          width: 80,
-                          height: 80,
-                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                          fit: BoxFit.contain,
+                    onDismissed: (direction) {
+                      HapticFeedback.mediumImpact();
+                      ref.read(cartProvider.notifier).removeFromCart(item.product.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${item.product.title} removed from cart.'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        const SizedBox(width: 16),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.surfaceDark : Colors.white,
+                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                        border: Border.all(
+                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        ),
+                        boxShadow: AppConstants.lowShadow,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image with border container
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.bgDark : AppColors.bgLight,
+                              borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                            ),
+                            child: NetworkImageWidget(
+                              imageUrl: item.product.imageUrl,
+                              width: 80,
+                              height: 80,
+                              borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
 
-                        // Details Block
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Details Block
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title
+                                Text(
+                                  item.product.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                
+                                // Weight/Size details
+                                Text(
+                                  'Size/Qty: ${item.product.weight}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Price & Original Price
+                                Row(
+                                  children: [
+                                    Text(
+                                      '\$${item.product.price.toStringAsFixed(2)}',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    if (item.product.originalPrice != null) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '\$${item.product.originalPrice!.toStringAsFixed(2)}',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          decoration: TextDecoration.lineThrough,
+                                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Quantity Updater & Delete Row
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Title
-                              Text(
-                                item.product.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              // Delete button
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                  ref.read(cartProvider.notifier).removeFromCart(item.product.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('${item.product.title} removed from cart.'),
+                                      duration: const Duration(seconds: 1),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                padding: EdgeInsets.zero,
                               ),
-                              const SizedBox(height: 4),
-                              
-                              // Weight/Size details
-                              Text(
-                                item.product.weight,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-
-                              // Price Details
-                              Text(
-                                '\$${item.product.price.toStringAsFixed(2)}',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
+                              const SizedBox(height: 12),
+                              // Counter
+                              QuantitySelector(
+                                quantity: item.quantity,
+                                onChanged: (val) {
+                                  HapticFeedback.lightImpact();
+                                  ref.read(cartProvider.notifier).updateQuantity(item.product.id, val);
+                                },
                               ),
                             ],
                           ),
-                        ),
-
-                        // Quantity Updater & Delete Row
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Delete button
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                              onPressed: () {
-                                ref.read(cartProvider.notifier).removeFromCart(item.product.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${item.product.title} removed from cart.'),
-                                    duration: const Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                              padding: EdgeInsets.zero,
-                            ),
-                            const SizedBox(height: 12),
-                            // Counter
-                            QuantitySelector(
-                              quantity: item.quantity,
-                              onChanged: (val) {
-                                ref.read(cartProvider.notifier).updateQuantity(item.product.id, val);
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  );
+                  ).animate()
+                   .fadeIn(duration: 450.ms, delay: (index * 60).ms)
+                   .slideX(begin: 0.25, end: 0, curve: Curves.easeOutBack)
+                   .scale(begin: const Offset(0.92, 0.92), curve: Curves.easeOutBack)
+                   .blur(begin: const Offset(4, 4), end: Offset.zero);
                 },
               ),
             ),
@@ -238,6 +314,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
+                            minimumSize: const Size(0, 48),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.radiusM)),
                           ),
                           onPressed: () => _applyCoupon(subtotal),
@@ -287,7 +364,10 @@ class _CartPageState extends ConsumerState<CartPage> {
                       minimumSize: const Size(double.infinity, 54),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.radiusM)),
                     ),
-                    onPressed: () => context.push('/checkout'),
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      context.push('/checkout');
+                    },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -305,6 +385,10 @@ class _CartPageState extends ConsumerState<CartPage> {
                   ),
                 ],
               ),
+            ).animate().fadeIn(duration: 450.ms, delay: 150.ms).slideY(
+              begin: 0.15,
+              end: 0,
+              curve: Curves.easeOutQuad,
             ),
           ],
         ),
