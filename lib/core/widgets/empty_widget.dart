@@ -34,7 +34,7 @@ class EmptyWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark
                     ? theme.colorScheme.surface
-                    : theme.colorScheme.primary.withOpacity(0.06),
+                    : theme.colorScheme.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -52,17 +52,20 @@ class EmptyWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppConstants.spaceS),
-            Text(
-              description,
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Text(
+                description,
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
             ),
             if (buttonText != null && onButtonPressed != null) ...[
               const SizedBox(height: AppConstants.spaceXL),
               PrimaryButton(
                 text: buttonText!,
                 onPressed: onButtonPressed!,
-                width: 200,
+                width: 220,
               ),
             ],
           ],

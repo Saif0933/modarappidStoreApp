@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
 import '../../../../shared/providers/products_provider.dart';
 
@@ -143,6 +143,7 @@ class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWide = context.isTablet || context.isDesktop;
 
     // Fetch user's actual selected address from Riverpod
     final selectedAddress = ref.watch(selectedAddressProvider);
@@ -198,360 +199,391 @@ class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage> {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: const CustomAppBar(title: 'Track Order'),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Live Google Maps Widget Container
-              Container(
-                height: 250,
-                margin: const EdgeInsets.all(AppConstants.spaceM),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(AppConstants.radiusXL),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                  boxShadow: AppConstants.mediumShadow,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusXL),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      // Official Google Maps Widget integration
-                      GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: _routeCoordinates[_stepIndex],
-                          zoom: 13.5,
-                        ),
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                        },
-                        markers: {
-                          // Rider Marker
-                          Marker(
-                            markerId: const MarkerId('rider'),
-                            position: _routeCoordinates[_stepIndex],
-                            infoWindow: InfoWindow(
-                              title: 'Alex Johnson (Rider)',
-                              snippet: 'Distance remaining: ${currentMilestone.distance}',
-                            ),
-                            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                          ),
-                          // Destination Marker
-                          Marker(
-                            markerId: const MarkerId('destination'),
-                            position: _routeCoordinates.last,
-                            infoWindow: InfoWindow(
-                              title: 'Delivery Destination',
-                              snippet: destinationLabel,
-                            ),
-                            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                          ),
-                        },
-                        polylines: {
-                          // Planned Route Polyline
-                          Polyline(
-                            polylineId: const PolylineId('planned_route'),
-                            points: _routeCoordinates,
-                            color: Colors.blue.withOpacity(0.5),
-                            width: 6,
-                          ),
-                          // Traveled Route Polyline (Highlighted Green)
-                          Polyline(
-                            polylineId: const PolylineId('traveled_route'),
-                            points: _routeCoordinates.sublist(0, _stepIndex + 1),
-                            color: AppColors.primary,
-                            width: 6,
-                          ),
-                        },
-                        zoomControlsEnabled: false,
-                        myLocationButtonEnabled: false,
-                        mapType: MapType.normal,
-                      ),
-
-                      // Custom Map Zoom scale overlay
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Column(
-                          children: [
-                            _buildMapControl(Icons.add, _zoomIn, isDark),
-                            const SizedBox(height: 8),
-                            _buildMapControl(Icons.remove, _zoomOut, isDark),
-                          ],
-                        ),
-                      ),
-
-                      // GPS Target Locater Button ("Locate Me")
-                      Positioned(
-                        bottom: 12,
-                        right: 12,
-                        child: GestureDetector(
-                          onTap: _isLocating ? null : _fetchCurrentLocation,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.surfaceDark.withOpacity(0.9) : Colors.white.withOpacity(0.9),
-                              shape: BoxShape.circle,
-                              boxShadow: AppConstants.lowShadow,
-                            ),
-                            child: _isLocating
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                                    ),
-                                  )
-                                : const Icon(Icons.my_location_rounded, size: 18, color: AppColors.primary),
-                          ),
-                        ),
-                      ),
-
-                      // Delivery Estimate Info Tag
-                      Positioned(
-                        bottom: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.bgDark.withOpacity(0.85) : Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                            boxShadow: AppConstants.lowShadow,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.flash_on_rounded, color: AppColors.accent, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                _stepIndex == 4 ? 'Status: Arrived' : 'Time Left: ${currentMilestone.timeRemaining}',
-                                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 2. Real-Time Location Tracking Info Card
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-                padding: const EdgeInsets.all(AppConstants.spaceM),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                  boxShadow: AppConstants.lowShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.maxContentWidth),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(AppConstants.spaceM),
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 20),
-                        ),
-                        const SizedBox(width: 12),
+                        // Left Column: Map + GPS info
                         Expanded(
+                          flex: 6,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'CURRENT GPS LOCATION',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                currentMilestone.name,
-                                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                              ),
+                              _buildMapContainer(isDark, theme, currentMilestone, destinationLabel, height: 380),
+                              const SizedBox(height: 16),
+                              _buildGpsCard(isDark, theme, currentMilestone),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        // Right Column: Courier + Delivery Timeline
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildCourierCard(isDark, theme),
+                              const SizedBox(height: 24),
+                              _buildTimelineCard(isDark, theme, steps),
                             ],
                           ),
                         ),
                       ],
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTrackingStat('Distance Left', currentMilestone.distance, theme),
-                        _buildTrackingStat('Time Left', currentMilestone.timeRemaining, theme),
-                        _buildTrackingStat('GPS Status', _stepIndex == 4 ? 'Arrived' : 'In Transit', theme),
+                        _buildMapContainer(isDark, theme, currentMilestone, destinationLabel, height: 250),
+                        const SizedBox(height: 16),
+                        _buildGpsCard(isDark, theme, currentMilestone),
+                        const SizedBox(height: 16),
+                        _buildCourierCard(isDark, theme),
+                        const SizedBox(height: 24),
+                        _buildTimelineCard(isDark, theme, steps),
+                        const SizedBox(height: 32),
                       ],
                     ),
-                  ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapContainer(bool isDark, ThemeData theme, TrackingMilestone currentMilestone, String destinationLabel, {required double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(AppConstants.radiusXL),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+        boxShadow: AppConstants.mediumShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppConstants.radiusXL),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: _routeCoordinates[_stepIndex],
+                zoom: 13.5,
+              ),
+              onMapCreated: (controller) {
+                _mapController = controller;
+              },
+              markers: {
+                Marker(
+                  markerId: const MarkerId('rider'),
+                  position: _routeCoordinates[_stepIndex],
+                  infoWindow: InfoWindow(
+                    title: 'Alex Johnson (Rider)',
+                    snippet: 'Distance remaining: ${currentMilestone.distance}',
+                  ),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                ),
+                Marker(
+                  markerId: const MarkerId('destination'),
+                  position: _routeCoordinates.last,
+                  infoWindow: InfoWindow(
+                    title: 'Delivery Destination',
+                    snippet: destinationLabel,
+                  ),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                ),
+              },
+              polylines: {
+                Polyline(
+                  polylineId: const PolylineId('planned_route'),
+                  points: _routeCoordinates,
+                  color: Colors.blue.withValues(alpha: 0.5),
+                  width: 6,
+                ),
+                Polyline(
+                  polylineId: const PolylineId('traveled_route'),
+                  points: _routeCoordinates.sublist(0, _stepIndex + 1),
+                  color: AppColors.primary,
+                  width: 6,
+                ),
+              },
+              zoomControlsEnabled: false,
+              myLocationButtonEnabled: false,
+              mapType: MapType.normal,
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Column(
+                children: [
+                  _buildMapControl(Icons.add, _zoomIn, isDark),
+                  const SizedBox(height: 8),
+                  _buildMapControl(Icons.remove, _zoomOut, isDark),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: GestureDetector(
+                onTap: _isLocating ? null : _fetchCurrentLocation,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                    boxShadow: AppConstants.lowShadow,
+                  ),
+                  child: _isLocating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        )
+                      : const Icon(Icons.my_location_rounded, size: 18, color: AppColors.primary),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // 3. Courier Boy Details
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-                padding: const EdgeInsets.all(AppConstants.spaceM),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
+                  color: isDark ? AppColors.bgDark.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusS),
                   boxShadow: AppConstants.lowShadow,
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryLight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Alex Johnson',
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                '4.8 (1.2k Ratings)',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        _buildRoundButton(Icons.call_rounded, isDark, () {}),
-                        const SizedBox(width: 8),
-                        _buildRoundButton(Icons.message_rounded, isDark, () {}),
-                      ],
+                    const Icon(Icons.flash_on_rounded, color: AppColors.accent, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      _stepIndex == 4 ? 'Status: Arrived' : 'Time Left: ${currentMilestone.timeRemaining}',
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // 4. Timeline Progress Steps
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-                child: Text(
-                  'Delivery Status',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 12),
-              
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceXL),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: steps.length,
-                  itemBuilder: (context, index) {
-                    final step = steps[index];
-                    final isLast = index == steps.length - 1;
-                    
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Column(
-                          children: [
-                            Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: step.isCompleted || step.isCurrent 
-                                    ? AppColors.primary 
-                                    : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                                shape: BoxShape.circle,
-                                border: step.isCurrent 
-                                    ? Border.all(color: AppColors.primaryLight, width: 4)
-                                    : null,
-                              ),
-                              child: step.isCompleted 
-                                  ? const Icon(Icons.check, size: 12, color: Colors.white) 
-                                  : null,
-                            ),
-                            if (!isLast)
-                              Container(
-                                width: 2,
-                                height: 50,
-                                color: step.isCompleted 
-                                    ? AppColors.primary 
-                                    : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                step.title,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: step.isCurrent || step.isCompleted
-                                      ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                                      : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                step.description,
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          step.time,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: step.isCompleted ? AppColors.primary : null,
-                            fontWeight: step.isCompleted ? FontWeight.bold : null,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGpsCard(bool isDark, ThemeData theme, TrackingMilestone currentMilestone) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.spaceM),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(AppConstants.radiusM),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+        boxShadow: AppConstants.lowShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CURRENT GPS LOCATION',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentMilestone.name,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildTrackingStat('Distance Left', currentMilestone.distance, theme),
+              _buildTrackingStat('Time Left', currentMilestone.timeRemaining, theme),
+              _buildTrackingStat('GPS Status', _stepIndex == 4 ? 'Arrived' : 'In Transit', theme),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourierCard(bool isDark, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.spaceM),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(AppConstants.radiusM),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+        boxShadow: AppConstants.lowShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Alex Johnson',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '4.8 (1.2k Ratings)',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              _buildRoundButton(Icons.call_rounded, isDark, () {}),
+              const SizedBox(width: 8),
+              _buildRoundButton(Icons.message_rounded, isDark, () {}),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineCard(bool isDark, ThemeData theme, List<TrackingStep> steps) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Delivery Status',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: steps.length,
+          itemBuilder: (context, index) {
+            final step = steps[index];
+            final isLast = index == steps.length - 1;
+            
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: step.isCompleted || step.isCurrent 
+                            ? AppColors.primary 
+                            : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                        shape: BoxShape.circle,
+                        border: step.isCurrent 
+                            ? Border.all(color: AppColors.primaryLight, width: 4)
+                            : null,
+                      ),
+                      child: step.isCompleted 
+                          ? const Icon(Icons.check, size: 12, color: Colors.white) 
+                          : null,
+                    ),
+                    if (!isLast)
+                      Container(
+                        width: 2,
+                        height: 50,
+                        color: step.isCompleted 
+                            ? AppColors.primary 
+                            : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: step.isCurrent || step.isCompleted
+                              ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                              : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        step.description,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  step.time,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: step.isCompleted ? AppColors.primary : null,
+                    fontWeight: step.isCompleted ? FontWeight.bold : null,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -561,7 +593,7 @@ class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark.withOpacity(0.9) : Colors.white.withOpacity(0.9),
+          color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
           shape: BoxShape.circle,
           boxShadow: AppConstants.lowShadow,
         ),
@@ -596,7 +628,7 @@ class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.borderDark : AppColors.primaryLight.withOpacity(0.4),
+          color: isDark ? AppColors.borderDark : AppColors.primaryLight.withValues(alpha: 0.4),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 20, color: AppColors.primary),
@@ -611,7 +643,6 @@ class TrackingMilestone {
   final String timeRemaining;
   final String? styleName;
   final String statusDescription;
-
   TrackingMilestone({
     required this.name,
     required this.distance,
@@ -627,7 +658,6 @@ class TrackingStep {
   final String time;
   final bool isCompleted;
   final bool isCurrent;
-
   TrackingStep({
     required this.title,
     required this.description,
@@ -636,3 +666,4 @@ class TrackingStep {
     this.isCurrent = false,
   });
 }
+

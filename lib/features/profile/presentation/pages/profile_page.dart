@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 
 // User Details Provider
 class UserProfile {
@@ -55,59 +56,62 @@ class ProfilePage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Premium Header with Gradient & Decorative shapes
-            Stack(
-              clipBehavior: Clip.none,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.contentCardWidth),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Gradient Container
-                Container(
-                  height: 230,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0E7F53), // Signature Emerald
-                        Color(0xFF074D32), // Deep Forest Green
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0E7F53).withOpacity(0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                // 1. Premium Header with Gradient & Decorative shapes
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Gradient Container
+                    Container(
+                      height: 230,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF0E7F53), // Signature Emerald
+                            Color(0xFF074D32), // Deep Forest Green
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(32),
+                          bottomRight: Radius.circular(32),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0E7F53).withValues(alpha: 0.25),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                // Decorative atmospheric glow orbs
-                Positioned(
-                  top: -50,
-                  right: -50,
-                  child: CircleAvatar(
-                    radius: 90,
-                    backgroundColor: Colors.white.withOpacity(0.06),
-                  ),
-                ),
-                Positioned(
-                  bottom: 30,
-                  left: -20,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white.withOpacity(0.04),
-                  ),
-                ),
+                    // Decorative atmospheric glow orbs
+                    Positioned(
+                      top: -50,
+                      right: -50,
+                      child: CircleAvatar(
+                        radius: 90,
+                        backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 30,
+                      left: -20,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white.withValues(alpha: 0.04),
+                      ),
+                    ),
 
                 // Top Navigation/Title row
                 SafeArea(
@@ -171,7 +175,7 @@ class ProfilePage extends ConsumerWidget {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
+                                        color: Colors.black.withValues(alpha: 0.15),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       ),
@@ -272,7 +276,7 @@ class ProfilePage extends ConsumerWidget {
                             Text(
                               user.email,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -373,7 +377,7 @@ class ProfilePage extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.person_rounded,
                       iconColor: AppColors.primary,
-                      iconBgColor: AppColors.primaryLight.withOpacity(isDark ? 0.15 : 0.8),
+                      iconBgColor: AppColors.primaryLight.withValues(alpha: isDark ? 0.15 : 0.8),
                       title: 'Edit Profile',
                       subtitle: 'Change name, email and phone number',
                       onTap: () => context.push('/edit-profile'),
@@ -384,7 +388,7 @@ class ProfilePage extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.shopping_bag_rounded,
                       iconColor: AppColors.accent,
-                      iconBgColor: AppColors.accentLight.withOpacity(isDark ? 0.15 : 0.8),
+                      iconBgColor: AppColors.accentLight.withValues(alpha: isDark ? 0.15 : 0.8),
                       title: 'My Orders',
                       subtitle: 'View, track or cancel your orders',
                       onTap: () => context.push('/order-history'),
@@ -395,7 +399,7 @@ class ProfilePage extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.favorite_rounded,
                       iconColor: const Color(0xFFEF4444),
-                      iconBgColor: const Color(0xFFFEE2E2).withOpacity(isDark ? 0.15 : 0.8),
+                      iconBgColor: const Color(0xFFFEE2E2).withValues(alpha: isDark ? 0.15 : 0.8),
                       title: 'My Wishlist',
                       subtitle: 'Find all your saved and favorited products',
                       onTap: () => context.go('/wishlist'),
@@ -406,7 +410,7 @@ class ProfilePage extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.location_on_rounded,
                       iconColor: const Color(0xFF3B82F6),
-                      iconBgColor: const Color(0xFFDBEAFE).withOpacity(isDark ? 0.15 : 0.8),
+                      iconBgColor: const Color(0xFFDBEAFE).withValues(alpha: isDark ? 0.15 : 0.8),
                       title: 'Shipping Addresses',
                       subtitle: 'Manage your saved delivery addresses',
                       onTap: () => context.push('/address-list'),
@@ -417,7 +421,7 @@ class ProfilePage extends ConsumerWidget {
                     _buildMenuItem(
                       icon: Icons.settings_rounded,
                       iconColor: const Color(0xFF6B7280),
-                      iconBgColor: const Color(0xFFF3F4F6).withOpacity(isDark ? 0.15 : 0.8),
+                      iconBgColor: const Color(0xFFF3F4F6).withValues(alpha: isDark ? 0.15 : 0.8),
                       title: 'Settings',
                       subtitle: 'Configure application preferences and themes',
                       onTap: () => context.push('/settings'),
@@ -456,7 +460,7 @@ class ProfilePage extends ConsumerWidget {
                   color: isDark ? AppColors.surfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(AppConstants.radiusXL),
                   border: Border.all(
-                    color: Colors.red.withOpacity(isDark ? 0.25 : 0.15),
+                    color: Colors.red.withValues(alpha: isDark ? 0.25 : 0.15),
                   ),
                   boxShadow: AppConstants.lowShadow,
                 ),
@@ -474,7 +478,7 @@ class ProfilePage extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -528,7 +532,9 @@ class ProfilePage extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildStatItem({
@@ -668,99 +674,102 @@ class ProfilePage extends ConsumerWidget {
           ),
           elevation: 16,
           backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.spaceL),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.redAccent,
-                    size: 32,
-                  ),
-                ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                const SizedBox(height: 20),
-                Text(
-                  'Logout Account',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Are you sure you want to log out of your account? You will need to sign in again to access your orders and wishlist.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                          ),
-                        ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.pop(context);
-                        },
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.spaceL),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: Colors.redAccent,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                          ),
-                        ),
-                        onPressed: () {
-                          HapticFeedback.mediumImpact();
-                          Navigator.pop(context);
-                          context.go('/login');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Logged out successfully.'),
-                              behavior: SnackBarBehavior.floating,
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.redAccent,
+                      size: 32,
+                    ),
+                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Logout Account',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Are you sure you want to log out of your account? You will need to sign in again to access your orders and wishlist.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(
+                              color: isDark ? AppColors.borderDark : AppColors.borderLight,
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Logout',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                            ),
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.redAccent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                            ),
+                          ),
+                          onPressed: () {
+                            HapticFeedback.mediumImpact();
+                            Navigator.pop(context);
+                            context.go('/login');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Logged out successfully.'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../app/constants/app_constants.dart';
-import '../../app/theme/app_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -54,16 +53,21 @@ class PrimaryButton extends StatelessWidget {
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
                     Icon(icon, size: 20, color: textThemeColor),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    text,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: textThemeColor,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: textThemeColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

@@ -103,8 +103,8 @@ class ProductCard extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: isDark 
-                            ? AppColors.surfaceDark.withOpacity(0.9) 
-                            : Colors.white.withOpacity(0.9),
+                            ? AppColors.surfaceDark.withValues(alpha: 0.9) 
+                            : Colors.white.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                         boxShadow: AppConstants.lowShadow,
                       ),

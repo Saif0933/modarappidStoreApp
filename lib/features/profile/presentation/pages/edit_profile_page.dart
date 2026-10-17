@@ -68,47 +68,50 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: const CustomAppBar(title: 'Edit Profile'),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spaceM),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 24),
-                        
-                        // Avatar Edit Block
-                        Stack(
-                          alignment: Alignment.bottomRight,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.spaceM),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
                           children: [
-                            Hero(
-                              tag: 'profile_avatar',
-                              child: Material(
-                                type: MaterialType.transparency,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isDark ? AppColors.surfaceDark : Colors.white,
-                                      width: 4,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.12),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 5),
+                            const SizedBox(height: 24),
+                            
+                            // Avatar Edit Block
+                            Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Hero(
+                                  tag: 'profile_avatar',
+                                  child: Material(
+                                    type: MaterialType.transparency,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isDark ? AppColors.surfaceDark : Colors.white,
+                                          width: 4,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.12),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 5),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 54,
-                                    backgroundColor: isDark
-                                        ? AppColors.primaryDark
-                                        : AppColors.primaryLight,
+                                      child: CircleAvatar(
+                                        radius: 54,
+                                        backgroundColor: isDark
+                                            ? AppColors.primaryDark
+                                            : AppColors.primaryLight,
                                     child: Text(
                                       _nameController.text.isNotEmpty 
                                           ? _nameController.text.split(' ').map((n) => n.isNotEmpty ? n[0] : '').join()
@@ -224,6 +227,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

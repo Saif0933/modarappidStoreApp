@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -11,6 +9,7 @@ import '../../../../core/widgets/category_card.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
 import '../../../../core/widgets/discount_offers_banner.dart';
 import '../../../../core/widgets/product_card.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../shared/providers/products_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -118,9 +117,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             SingleChildScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Greeting & Custom App Bar
                   Padding(
                     padding: const EdgeInsets.all(AppConstants.spaceM),
@@ -308,14 +310,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               ),
             ),
+          ),
+        ),
 
-            // 2. Sticky Search Bar Overlay
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              top: showStickySearch ? 0 : -80,
-              left: 0,
-              right: 0,
+        // 2. Sticky Search Bar Overlay
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          top: showStickySearch ? 0 : -80,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
               child: Container(
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.bgDark : AppColors.bgLight,
@@ -337,14 +344,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
             ),
+          ),
+        ),
 
-            // 3. Sticky Categories Chip List Overlay
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              top: showStickyCategories ? 70 : -140,
-              left: 0,
-              right: 0,
+        // 3. Sticky Categories Chip List Overlay
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          top: showStickyCategories ? 70 : -140,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
               child: Container(
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.bgDark : AppColors.bgLight,
@@ -408,10 +420,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildProductSection({
@@ -423,6 +437,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   }) {
     final theme = Theme.of(context);
     if (productList.isEmpty) return const SizedBox.shrink();
+
+    final isTablet = context.isTabletOrDesktop;
+    final cardHeight = isTablet ? 290.0 : 250.0;
+    final cardWidth = isTablet ? 190.0 : 160.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,7 +468,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
         SizedBox(
-          height: 250,
+          height: cardHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
@@ -467,7 +485,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   top: 4.0,
                 ),
                 child: SizedBox(
-                  width: 160,
+                  width: cardWidth,
                   child: ProductCard(
                     id: product.id,
                     title: product.title,

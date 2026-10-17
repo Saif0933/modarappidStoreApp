@@ -92,15 +92,20 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final bannerHeight = (MediaQuery.sizeOf(context).height * 0.35).clamp(220.0, 320.0);
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 1. Flipkart-style Top Banner (Gradient Header)
-            Container(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.38,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // 1. Flipkart-style Top Banner (Gradient Header)
+                Container(
+                  width: double.infinity,
+                  height: bannerHeight,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
@@ -282,9 +287,10 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                     children: List.generate(
                       6,
                       (index) {
-                        final cellWidth = (MediaQuery.of(context).size.width - 56 - 50) / 6;
+                        final availableWidth = MediaQuery.sizeOf(context).width.clamp(0.0, 520.0);
+                        final cellWidth = ((availableWidth - 56 - 50) / 6).clamp(36.0, 50.0);
                         return SizedBox(
-                          width: cellWidth > 48 ? 48 : cellWidth,
+                          width: cellWidth,
                           height: 54,
                           child: TextField(
                             controller: _controllers[index],
@@ -425,6 +431,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

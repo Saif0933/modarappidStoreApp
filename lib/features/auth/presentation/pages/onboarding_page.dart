@@ -60,8 +60,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                children: [
               // Top Bar (Skip Button)
               Align(
                 alignment: Alignment.topRight,
@@ -315,6 +318,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),

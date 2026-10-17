@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../shared/providers/products_provider.dart';
@@ -48,6 +49,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWide = context.isTablet || context.isDesktop;
 
     final selectedAddress = ref.watch(selectedAddressProvider);
     final cartList = ref.watch(cartProvider);
@@ -62,225 +64,346 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: const CustomAppBar(title: 'Checkout'),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Scrollable Content
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(AppConstants.spaceM),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Delivery Address Card
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: isWide
+            ? Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.maxContentWidth),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppConstants.spaceL),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Delivery Address',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        // Left Column: Address & Payment Methods
+                        Expanded(
+                          flex: 6,
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildDeliveryAddress(selectedAddress, theme, isDark),
+                                const SizedBox(height: 24),
+                                _buildPaymentMethods(theme, isDark),
+                              ],
+                            ),
+                          ),
                         ),
-                        TextButton(
-                          onPressed: () => context.push('/address-list'),
-                          child: const Text('Change', style: TextStyle(color: AppColors.primary)),
+                        const SizedBox(width: 28),
+                        // Right Column: Order Summary & Place Order Card
+                        SizedBox(
+                          width: 380,
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: _buildOrderSummary(
+                              cartList: cartList,
+                              subtotal: subtotal,
+                              shipping: shipping,
+                              tax: tax,
+                              total: total,
+                              theme: theme,
+                              isDark: isDark,
+                              isWide: true,
+                              onPlaceOrder: selectedAddress == null ? null : _placeOrder,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Container(
+                  ),
+                ),
+              )
+            : Column(
+                children: [
+                  // Scrollable Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.all(AppConstants.spaceM),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : Colors.white,
-                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                        border: Border.all(
-                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        ),
-                        boxShadow: AppConstants.lowShadow,
-                      ),
-                      child: selectedAddress == null
-                          ? const Text('No delivery address selected. Tap "Change" to select or add one.')
-                          : Row(
-                              children: [
-                                const Icon(Icons.location_on_rounded, color: AppColors.accent, size: 24),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        selectedAddress.name,
-                                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedAddress.addressLine,
-                                        style: theme.textTheme.bodyMedium,
-                                      ),
-                                      Text(
-                                        selectedAddress.city,
-                                        style: theme.textTheme.bodyMedium,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedAddress.phone,
-                                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 2. Payment Methods
-                    Text(
-                      'Payment Method',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    Column(
-                      children: _paymentMethods.map((method) {
-                        final isSelected = _selectedPaymentMethod == method.title;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : Colors.white,
-                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                            border: Border.all(
-                              color: isSelected 
-                                  ? AppColors.primary 
-                                  : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                              width: isSelected ? 1.5 : 1.0,
-                            ),
-                          ),
-                          child: RadioListTile<String>(
-                            value: method.title,
-                            groupValue: _selectedPaymentMethod,
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _selectedPaymentMethod = val;
-                                });
-                              }
-                            },
-                            title: Text(
-                              method.title,
-                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              method.subtitle,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                            secondary: Icon(method.icon, color: AppColors.primary),
-                            activeColor: AppColors.primary,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 3. Order Summary Items
-                    Text(
-                      'Order Summary',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(AppConstants.spaceM),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : Colors.white,
-                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                        border: Border.all(
-                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        ),
-                      ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: cartList.length,
-                            itemBuilder: (context, index) {
-                              final item = cartList[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${item.quantity}x ${item.product.title}',
-                                        style: theme.textTheme.bodyMedium,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
-                                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                          _buildDeliveryAddress(selectedAddress, theme, isDark),
+                          const SizedBox(height: 24),
+                          _buildPaymentMethods(theme, isDark),
+                          const SizedBox(height: 24),
+                          _buildOrderSummary(
+                            cartList: cartList,
+                            subtotal: subtotal,
+                            shipping: shipping,
+                            tax: tax,
+                            total: total,
+                            theme: theme,
+                            isDark: isDark,
+                            isWide: false,
                           ),
-                          const Divider(),
-                          _buildSummaryRow('Subtotal', '\$${subtotal.toStringAsFixed(2)}', theme),
-                          const SizedBox(height: 6),
-                          _buildSummaryRow('Delivery Charges', shipping == 0.0 ? 'FREE' : '\$${shipping.toStringAsFixed(2)}', theme),
-                          const SizedBox(height: 6),
-                          _buildSummaryRow('Est. Tax (5%)', '\$${tax.toStringAsFixed(2)}', theme),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Bottom Sticky Order Button
+                  _buildBottomStickyBar(total, selectedAddress, theme, isDark),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildDeliveryAddress(Address? selectedAddress, ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Delivery Address',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () => context.push('/address-list'),
+              child: const Text('Change', style: TextStyle(color: AppColors.primary)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppConstants.spaceM),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+            boxShadow: AppConstants.lowShadow,
+          ),
+          child: selectedAddress == null
+              ? const Text('No delivery address selected. Tap "Change" to select or add one.')
+              : Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: AppColors.accent, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            selectedAddress.name,
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            selectedAddress.addressLine,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          Text(
+                            selectedAddress.city,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            selectedAddress.phone,
+                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
+        ),
+      ],
+    );
+  }
 
-            // Bottom Sticky Order Button
-            Container(
-              padding: const EdgeInsets.all(AppConstants.spaceM),
+  Widget _buildPaymentMethods(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Payment Method',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Column(
+          children: _paymentMethods.map((method) {
+            final isSelected = _selectedPaymentMethod == method.title;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : Colors.white,
-                border: Border(
-                  top: BorderSide(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
+                borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                border: Border.all(
+                  color: isSelected 
+                      ? AppColors.primary 
+                      : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                  width: isSelected ? 1.5 : 1.0,
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Total Amount',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      Text(
-                        '\$${total.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: PrimaryButton(
-                      text: 'Place Order',
-                      onPressed: selectedAddress == null ? null : _placeOrder,
-                    ),
-                  ),
-                ],
+              child: RadioListTile<String>(
+                value: method.title,
+                groupValue: _selectedPaymentMethod,
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _selectedPaymentMethod = val;
+                    });
+                  }
+                },
+                title: Text(
+                  method.title,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  method.subtitle,
+                  style: theme.textTheme.bodySmall,
+                ),
+                secondary: Icon(method.icon, color: AppColors.primary),
+                activeColor: AppColors.primary,
               ),
-            ),
-          ],
+            );
+          }).toList(),
         ),
+      ],
+    );
+  }
+
+  Widget _buildOrderSummary({
+    required List<CartItem> cartList,
+    required double subtotal,
+    required double shipping,
+    required double tax,
+    required double total,
+    required ThemeData theme,
+    required bool isDark,
+    bool isWide = false,
+    VoidCallback? onPlaceOrder,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Order Summary',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(AppConstants.spaceM),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+            boxShadow: isWide ? AppConstants.lowShadow : null,
+          ),
+          child: Column(
+            children: [
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: cartList.length,
+                itemBuilder: (context, index) {
+                  final item = cartList[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${item.quantity}x ${item.product.title}',
+                            style: theme.textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              _buildSummaryRow('Subtotal', '\$${subtotal.toStringAsFixed(2)}', theme),
+              const SizedBox(height: 6),
+              _buildSummaryRow('Delivery Charges', shipping == 0.0 ? 'FREE' : '\$${shipping.toStringAsFixed(2)}', theme),
+              const SizedBox(height: 6),
+              _buildSummaryRow('Est. Tax (5%)', '\$${tax.toStringAsFixed(2)}', theme),
+              if (isWide) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '\$${total.toStringAsFixed(2)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  text: 'Place Order',
+                  onPressed: onPlaceOrder,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomStickyBar(double total, Address? selectedAddress, ThemeData theme, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.spaceM),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Total Amount',
+                style: theme.textTheme.bodySmall,
+              ),
+              Text(
+                '\$${total.toStringAsFixed(2)}',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: PrimaryButton(
+              text: 'Place Order',
+              onPressed: selectedAddress == null ? null : _placeOrder,
+            ),
+          ),
+        ],
       ),
     );
   }

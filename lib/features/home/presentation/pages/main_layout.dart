@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -45,14 +46,117 @@ class MainLayout extends StatelessWidget {
     final selectedIndex = _calculateSelectedIndex(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isTabletOrDesktop = context.isTabletOrDesktop;
 
+    if (isTabletOrDesktop) {
+      // Tablet & Desktop layout: Side Navigation Rail + Main Content
+      final isExpandedRail = context.screenWidth >= 900;
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) => _onItemTapped(index, context),
+              extended: isExpandedRail,
+              backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+              indicatorColor: isDark
+                  ? AppColors.primary.withValues(alpha: 0.25)
+                  : AppColors.primaryLight,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.local_mall_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    if (isExpandedRail) ...[
+                      const SizedBox(width: 12),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'MODAR',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          Text(
+                            'APPID',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.amber,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
+                  label: Text('Home'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.grid_view_outlined),
+                  selectedIcon: Icon(Icons.grid_view_rounded, color: AppColors.primary),
+                  label: Text('Categories'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.favorite_border_rounded),
+                  selectedIcon: Icon(Icons.favorite_rounded, color: AppColors.primary),
+                  label: Text('Wishlist'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.shopping_cart_outlined),
+                  selectedIcon: Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
+                  label: Text('Cart'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon: Icon(Icons.person_rounded, color: AppColors.primary),
+                  label: Text('Profile'),
+                ),
+              ],
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+            Expanded(child: child),
+          ],
+        ),
+      );
+    }
+
+    // Phone layout: Bottom Navigation Bar + Main Content
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => _onItemTapped(index, context),
         backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        indicatorColor: AppColors.primaryLight.withOpacity(isDark ? 0.2 : 0.8),
+        indicatorColor: isDark
+            ? AppColors.primary.withValues(alpha: 0.25)
+            : AppColors.primaryLight,
         elevation: 8,
         destinations: const [
           NavigationDestination(
@@ -85,3 +189,4 @@ class MainLayout extends StatelessWidget {
     );
   }
 }
+

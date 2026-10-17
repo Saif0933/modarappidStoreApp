@@ -16,7 +16,7 @@ class Product {
   final bool isRecommended;
   final bool isTrending;
 
-  Product({
+  const Product({
     required this.id,
     required this.title,
     required this.imageUrl,
@@ -38,7 +38,7 @@ class CartItem {
   final Product product;
   final int quantity;
 
-  CartItem({
+  const CartItem({
     required this.product,
     required this.quantity,
   });
@@ -241,7 +241,41 @@ final wishlistProvider = StateNotifierProvider<WishlistNotifier, Set<String>>((r
 
 // Cart State Notifier
 class CartNotifier extends StateNotifier<List<CartItem>> {
-  CartNotifier() : super([]);
+  CartNotifier()
+      : super([
+          CartItem(
+            product: Product(
+              id: 'p1',
+              title: 'Premium Tailored Wool Overcoat',
+              imageUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500',
+              price: 189.99,
+              originalPrice: 229.99,
+              rating: 4.8,
+              reviewsCount: 124,
+              weight: 'L',
+              description: 'Exquisitely crafted from a premium Italian wool blend.',
+              category: 'Jackets',
+              isPopular: true,
+            ),
+            quantity: 1,
+          ),
+          CartItem(
+            product: Product(
+              id: 'p3',
+              title: 'Retro Streetwear Running Sneakers',
+              imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
+              price: 89.99,
+              rating: 4.9,
+              reviewsCount: 312,
+              weight: 'US 10',
+              description: 'Features lightweight responsive cushioning and breathable mesh panels.',
+              category: 'Footwear',
+              isRecommended: true,
+              isTrending: true,
+            ),
+            quantity: 1,
+          ),
+        ]);
 
   void addToCart(Product product, {int qty = 1}) {
     final existingIndex = state.indexWhere((item) => item.product.id == product.id);

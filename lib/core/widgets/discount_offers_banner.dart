@@ -120,48 +120,54 @@ class _DiscountOffersBannerState extends State<DiscountOffersBanner> {
   Widget build(BuildContext context) {
     if (_offers.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final bannerHeight = isWide ? 185.0 : 165.0;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Exclusive Offers',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Exclusive Offers',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tap coupon code to copy & apply',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondaryLight,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Tap coupon code to copy & apply',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondaryLight,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  const Icon(
+                    Icons.local_offer_outlined,
+                    color: AppColors.primary,
+                    size: 20,
                   ),
                 ],
               ),
-              const Icon(
-                Icons.local_offer_outlined,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppConstants.spaceM),
+            ),
+            const SizedBox(height: AppConstants.spaceM),
 
-        // Carousel Slider
-        SizedBox(
-          height: 165,
+            // Carousel Slider
+            SizedBox(
+              height: bannerHeight,
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -211,14 +217,16 @@ class _DiscountOffersBannerState extends State<DiscountOffersBanner> {
               decoration: BoxDecoration(
                 color: _currentPage == index
                     ? AppColors.primary
-                    : AppColors.primary.withOpacity(0.2),
+                    : AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3.0),
               ),
             ),
           ),
         ),
       ],
-    );
+    ),
+  ),
+);
   }
 }
 

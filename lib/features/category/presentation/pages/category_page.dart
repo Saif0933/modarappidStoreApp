@@ -5,6 +5,7 @@ import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
 import '../../../../core/widgets/product_card.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../shared/providers/products_provider.dart';
 
 class CategoriesPage extends ConsumerStatefulWidget {
@@ -62,155 +63,169 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Search Input Block
-            Padding(
-              padding: const EdgeInsets.all(AppConstants.spaceM),
-              child: CustomSearchBar(
-                hintText: 'Search in categories...',
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                  });
-                },
-              ),
-            ),
-
-            // Horizontal Categories Scroll Bar
-            SizedBox(
-              height: 42,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-                physics: const BouncingScrollPhysics(),
-                itemCount: _categories.length,
-                itemBuilder: (context, index) {
-                  final cat = _categories[index];
-                  final isSelected = _selectedCategory == cat;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 10.0),
-                    child: ChoiceChip(
-                      label: Text(cat),
-                      selected: isSelected,
-                      selectedColor: AppColors.primary,
-                      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-                      labelStyle: TextStyle(
-                        color: isSelected 
-                            ? Colors.white 
-                            : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppConstants.radiusL),
-                        side: BorderSide(
-                          color: isSelected 
-                              ? AppColors.primary 
-                              : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                        ),
-                      ),
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedCategory = cat;
-                          });
-                        }
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            
-            // Sort & Filter Controls Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${filteredProducts.length} Items found',
-                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              children: [
+                // Search Input Block
+                Padding(
+                  padding: const EdgeInsets.all(AppConstants.spaceM),
+                  child: CustomSearchBar(
+                    hintText: 'Search in categories...',
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
                   ),
-                  Row(
+                ),
+
+                // Horizontal Categories Scroll Bar
+                SizedBox(
+                  height: 42,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      final isSelected = _selectedCategory == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10.0),
+                        child: ChoiceChip(
+                          label: Text(cat),
+                          selected: isSelected,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+                          labelStyle: TextStyle(
+                            color: isSelected 
+                                ? Colors.white 
+                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppConstants.radiusL),
+                            side: BorderSide(
+                              color: isSelected 
+                                  ? AppColors.primary 
+                                  : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                            ),
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _selectedCategory = cat;
+                              });
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                // Sort & Filter Controls Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Sort Taps
-                      TextButton.icon(
-                        icon: const Icon(Icons.sort_rounded, size: 18, color: AppColors.primary),
-                        label: Text(_sortBy, style: const TextStyle(color: AppColors.primary)),
-                        onPressed: () => _showSortBottomSheet(context),
+                      Text(
+                        '${filteredProducts.length} Items found',
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(width: 8),
-                      // Filter Taps
-                      TextButton.icon(
-                        icon: const Icon(Icons.tune_rounded, size: 18, color: AppColors.primary),
-                        label: const Text('Filter', style: TextStyle(color: AppColors.primary)),
-                        onPressed: () => _showFilterBottomSheet(context),
+                      Row(
+                        children: [
+                          // Sort Taps
+                          TextButton.icon(
+                            icon: const Icon(Icons.sort_rounded, size: 18, color: AppColors.primary),
+                            label: Text(_sortBy, style: const TextStyle(color: AppColors.primary)),
+                            onPressed: () => _showSortBottomSheet(context),
+                          ),
+                          const SizedBox(width: 8),
+                          // Filter Taps
+                          TextButton.icon(
+                            icon: const Icon(Icons.tune_rounded, size: 18, color: AppColors.primary),
+                            label: const Text('Filter', style: TextStyle(color: AppColors.primary)),
+                            onPressed: () => _showFilterBottomSheet(context),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
+                ),
 
-            // Products Grid View
-            Expanded(
-              child: filteredProducts.isEmpty
-                  ? const Center(
-                      child: Text('No products matched your search/filters.'),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
-                      physics: const BouncingScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.68,
-                        crossAxisSpacing: AppConstants.gridSpacing,
-                        mainAxisSpacing: AppConstants.gridSpacing,
-                      ),
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        return ProductCard(
-                          id: product.id,
-                          title: product.title,
-                          imageUrl: product.imageUrl,
-                          price: product.price,
-                          originalPrice: product.originalPrice,
-                          rating: product.rating,
-                          reviewsCount: product.reviewsCount,
-                          weight: product.weight,
-                          isWishlisted: wishlist.contains(product.id),
-                          onTap: () => context.push('/product-details', extra: {
-                            'id': product.id,
-                            'title': product.title,
-                            'imageUrl': product.imageUrl,
-                            'price': product.price,
-                            'originalPrice': product.originalPrice,
-                            'rating': product.rating,
-                            'reviewsCount': product.reviewsCount,
-                            'weight': product.weight,
-                            'description': product.description,
-                            'category': product.category,
-                          }),
-                          onAddToCart: () {
-                            ref.read(cartProvider.notifier).addToCart(product);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${product.title} added to cart!'),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
+                // Products Grid View
+                Expanded(
+                  child: filteredProducts.isEmpty
+                      ? const Center(
+                          child: Text('No products matched your search/filters.'),
+                        )
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final crossAxisCount = Responsive.adaptiveProductColumns(constraints.maxWidth);
+                            final childAspectRatio = constraints.maxWidth < 600
+                                ? 0.68
+                                : (constraints.maxWidth < 900 ? 0.72 : 0.76);
+
+                            return GridView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+                              physics: const BouncingScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: childAspectRatio,
+                                crossAxisSpacing: AppConstants.gridSpacing,
+                                mainAxisSpacing: AppConstants.gridSpacing,
                               ),
+                              itemCount: filteredProducts.length,
+                              itemBuilder: (context, index) {
+                                final product = filteredProducts[index];
+                                return ProductCard(
+                                  id: product.id,
+                                  title: product.title,
+                                  imageUrl: product.imageUrl,
+                                  price: product.price,
+                                  originalPrice: product.originalPrice,
+                                  rating: product.rating,
+                                  reviewsCount: product.reviewsCount,
+                                  weight: product.weight,
+                                  isWishlisted: wishlist.contains(product.id),
+                                  onTap: () => context.push('/product-details', extra: {
+                                    'id': product.id,
+                                    'title': product.title,
+                                    'imageUrl': product.imageUrl,
+                                    'price': product.price,
+                                    'originalPrice': product.originalPrice,
+                                    'rating': product.rating,
+                                    'reviewsCount': product.reviewsCount,
+                                    'weight': product.weight,
+                                    'description': product.description,
+                                    'category': product.category,
+                                  }),
+                                  onAddToCart: () {
+                                    ref.read(cartProvider.notifier).addToCart(product);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${product.title} added to cart!'),
+                                        duration: const Duration(seconds: 1),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  onWishlistTap: () {
+                                    ref.read(wishlistProvider.notifier).toggleWishlist(product.id);
+                                  },
+                                );
+                              },
                             );
                           },
-                          onWishlistTap: () {
-                            ref.read(wishlistProvider.notifier).toggleWishlist(product.id);
-                          },
-                        );
-                      },
-                    ),
+                        ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -225,31 +240,36 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppConstants.radiusXL)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(AppConstants.spaceL),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sort By',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: Container(
+              padding: const EdgeInsets.all(AppConstants.spaceL),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sort By',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ...['Popular', 'Price: Low to High', 'Price: High to Low', 'Rating'].map((option) {
+                    final isSelected = _sortBy == option;
+                    return ListTile(
+                      title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                      trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+                      onTap: () {
+                        setState(() {
+                          _sortBy = option;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+                ],
               ),
-              const SizedBox(height: 16),
-              ...['Popular', 'Price: Low to High', 'Price: High to Low', 'Rating'].map((option) {
-                final isSelected = _sortBy == option;
-                return ListTile(
-                  title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                  trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
-                  onTap: () {
-                    setState(() {
-                      _sortBy = option;
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-            ],
+            ),
           ),
         );
       },
@@ -268,7 +288,10 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 550),
+                child: Padding(
               padding: EdgeInsets.only(
                 left: AppConstants.spaceL,
                 right: AppConstants.spaceL,
@@ -371,9 +394,11 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                   ),
                 ],
               ),
-            );
-          },
+            ),
+          ),
         );
+      },
+    );
       },
     );
   }

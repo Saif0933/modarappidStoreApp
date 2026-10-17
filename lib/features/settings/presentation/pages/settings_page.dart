@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/theme_provider.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -35,11 +36,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: const CustomAppBar(title: 'Settings'),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.contentCardWidth),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // 1. Theme Configuration Row
               _buildSectionTitle('Theme & Styling', theme),
               Container(
@@ -62,7 +66,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     style: const TextStyle(fontSize: 12),
                   ),
                   value: currentThemeMode == ThemeMode.dark,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: (val) {
                     ref.read(themeModeProvider.notifier).state =
                         val ? ThemeMode.dark : ThemeMode.light;
@@ -178,7 +182,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildSectionTitle(String title, ThemeData theme) {

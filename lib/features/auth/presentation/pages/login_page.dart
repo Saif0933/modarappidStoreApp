@@ -56,15 +56,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final bannerHeight = (MediaQuery.sizeOf(context).height * 0.35).clamp(220.0, 320.0);
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 1. Flipkart-style Top Banner (Gradient Header)
-            Container(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.38,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // 1. Flipkart-style Top Banner (Gradient Header)
+                Container(
+                  width: double.infinity,
+                  height: bannerHeight,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
@@ -360,6 +365,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

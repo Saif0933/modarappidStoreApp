@@ -50,13 +50,16 @@ class WishlistPage extends ConsumerWidget {
         elevation: 0,
       ),
       body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.all(AppConstants.spaceM),
-          physics: const BouncingScrollPhysics(),
-          itemCount: wishlistedProducts.length,
-          itemBuilder: (context, index) {
-            final product = wishlistedProducts[index];
-            return Dismissible(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(AppConstants.spaceM),
+              physics: const BouncingScrollPhysics(),
+              itemCount: wishlistedProducts.length,
+              itemBuilder: (context, index) {
+                final product = wishlistedProducts[index];
+                return Dismissible(
               key: Key(product.id),
               direction: DismissDirection.endToStart,
               background: Container(
@@ -298,6 +301,8 @@ class WishlistPage extends ConsumerWidget {
           },
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

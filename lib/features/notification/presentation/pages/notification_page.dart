@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
 import '../../../../core/widgets/empty_widget.dart';
 
@@ -121,131 +122,136 @@ class NotificationPage extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
-                itemCount: notifications.length,
-                itemBuilder: (context, index) {
-                  final notif = notifications[index];
-                  return GestureDetector(
-                    onTap: () {
-                      ref.read(notificationsProvider.notifier).markAsRead(notif.id);
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: notif.isRead
-                            ? (isDark ? AppColors.surfaceDark : Colors.white)
-                            : (isDark 
-                                ? AppColors.primary.withOpacity(0.08) 
-                                : AppColors.primary.withOpacity(0.04)),
-                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                        border: Border.all(
-                          color: notif.isRead
-                              ? (isDark ? AppColors.borderDark : AppColors.borderLight)
-                              : AppColors.primary.withOpacity(0.3),
-                        ),
-                        boxShadow: AppConstants.lowShadow,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Custom Icon Indicator with pulse dot
-                          Stack(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.contentCardWidth),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM, vertical: AppConstants.spaceS),
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      final notif = notifications[index];
+                      return GestureDetector(
+                        onTap: () {
+                          ref.read(notificationsProvider.notifier).markAsRead(notif.id);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: notif.isRead
+                                ? (isDark ? AppColors.surfaceDark : Colors.white)
+                                : (isDark 
+                                    ? AppColors.primary.withValues(alpha: 0.08) 
+                                    : AppColors.primary.withValues(alpha: 0.04)),
+                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                            border: Border.all(
+                              color: notif.isRead
+                                  ? (isDark ? AppColors.borderDark : AppColors.borderLight)
+                                  : AppColors.primary.withValues(alpha: 0.3),
+                            ),
+                            boxShadow: AppConstants.lowShadow,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isDark 
-                                      ? AppColors.bgDark 
-                                      : AppColors.primary.withOpacity(0.08),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  notif.icon,
-                                  color: AppColors.primary,
-                                  size: 22,
-                                ),
-                              ),
-                              if (!notif.isRead)
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.accent,
+                              // Custom Icon Indicator with pulse dot
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isDark 
+                                          ? AppColors.bgDark 
+                                          : AppColors.primary.withValues(alpha: 0.08),
                                       shape: BoxShape.circle,
                                     ),
+                                    child: Icon(
+                                      notif.icon,
+                                      color: AppColors.primary,
+                                      size: 22,
+                                    ),
                                   ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Text block details
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        notif.title,
-                                        style: theme.textTheme.titleSmall?.copyWith(
-                                          fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+                                  if (!notif.isRead)
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.accent,
+                                          shape: BoxShape.circle,
                                         ),
                                       ),
                                     ),
+                                ],
+                              ),
+                              const SizedBox(width: 16),
+
+                              // Text block details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            notif.title,
+                                            style: theme.textTheme.titleSmall?.copyWith(
+                                              fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          notif.time,
+                                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      notif.time,
-                                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                                      notif.body,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  notif.body,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                // Bottom Action bar to clear notifications
+                Padding(
+                  padding: const EdgeInsets.all(AppConstants.spaceM),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error),
+                    label: const Text('Clear All Notifications', style: TextStyle(color: AppColors.error)),
+                    onPressed: () {
+                      ref.read(notificationsProvider.notifier).clearAll();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cleared all notifications.'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            
-            // Bottom Action bar to clear notifications
-            Padding(
-              padding: const EdgeInsets.all(AppConstants.spaceM),
-              child: TextButton.icon(
-                icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error),
-                label: const Text('Clear All Notifications', style: TextStyle(color: AppColors.error)),
-                onPressed: () {
-                  ref.read(notificationsProvider.notifier).clearAll();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cleared all notifications.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

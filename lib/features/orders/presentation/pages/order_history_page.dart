@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_constants.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_app_bar.dart';
 import '../../../../core/widgets/empty_widget.dart';
 import '../../../../shared/providers/products_provider.dart';
@@ -48,101 +49,106 @@ class OrderHistoryPage extends ConsumerWidget {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: const CustomAppBar(title: 'My Orders'),
       body: SafeArea(
-        child: ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(AppConstants.spaceM),
-          itemCount: orderList.length,
-          itemBuilder: (context, index) {
-            final order = orderList[index];
-            final statusColor = getStatusColor(order.status);
-            
-            // Format order date
-            final dateString = '${order.date.day}/${order.date.month}/${order.date.year}';
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.contentCardWidth),
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(AppConstants.spaceM),
+              itemCount: orderList.length,
+              itemBuilder: (context, index) {
+                final order = orderList[index];
+                final statusColor = getStatusColor(order.status);
+                
+                // Format order date
+                final dateString = '${order.date.day}/${order.date.month}/${order.date.year}';
 
-            return GestureDetector(
-              onTap: () => context.push('/order-tracking'),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                  ),
-                  boxShadow: AppConstants.lowShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Order ID & Status
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                return GestureDetector(
+                  onTap: () => context.push('/order-tracking'),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceDark : Colors.white,
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                      border: Border.all(
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                      ),
+                      boxShadow: AppConstants.lowShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          order.id,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                          ),
-                          child: Text(
-                            order.status,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
+                        // Header Order ID & Status
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              order.id,
+                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                          ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                              ),
+                              child: Text(
+                                order.status,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+
+                        // Items display
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: order.items.length,
+                          itemBuilder: (context, i) {
+                            final item = order.items[i];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 4.0),
+                              child: Text(
+                                '${item.quantity}x ${item.product.title}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Date & Amount
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Placed on $dateString',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                            Text(
+                              '\$${order.totalAmount.toStringAsFixed(2)}',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
-
-                    // Items display
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: order.items.length,
-                      itemBuilder: (context, i) {
-                        final item = order.items[i];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Text(
-                            '${item.quantity}x ${item.product.title}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Date & Amount
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Placed on $dateString',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        Text(
-                          '\$${order.totalAmount.toStringAsFixed(2)}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

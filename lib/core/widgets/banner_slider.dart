@@ -6,13 +6,13 @@ import 'network_image_widget.dart';
 
 class BannerSlider extends StatefulWidget {
   final List<String> imageUrls;
-  final double height;
+  final double? height;
   final ValueChanged<int>? onTap;
 
   const BannerSlider({
     super.key,
     required this.imageUrls,
-    this.height = 180.0,
+    this.height,
     this.onTap,
   });
 
@@ -61,11 +61,17 @@ class _BannerSliderState extends State<BannerSlider> {
   Widget build(BuildContext context) {
     if (widget.imageUrls.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        SizedBox(
-          height: widget.height,
-          child: PageView.builder(
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final effectiveHeight = widget.height ?? (isWide ? 260.0 : 180.0);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: Column(
+          children: [
+            SizedBox(
+              height: effectiveHeight,
+              child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
               setState(() {
@@ -101,13 +107,15 @@ class _BannerSliderState extends State<BannerSlider> {
               decoration: BoxDecoration(
                 color: _currentPage == index
                     ? AppColors.primary
-                    : AppColors.primary.withOpacity(0.2),
+                    : AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4.0),
               ),
             ),
           ),
         ),
       ],
-    );
+    ),
+  ),
+);
   }
 }
