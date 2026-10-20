@@ -17,10 +17,45 @@ class ProductDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<ProductDetailsPage> createState() => _ProductDetailsPageState();
 }
 
+class ShirtColorVariant {
+  final String name;
+  final String imageUrl;
+  final Color color;
+
+  const ShirtColorVariant({
+    required this.name,
+    required this.imageUrl,
+    required this.color,
+  });
+}
+
+class GridSuggestedProduct {
+  final String id;
+  final String brand;
+  final String title;
+  final String imageUrl;
+  final double price;
+  final double originalPrice;
+  final double? rating;
+  final String? reviewsCountText;
+  final bool isAd;
+
+  const GridSuggestedProduct({
+    required this.id,
+    required this.brand,
+    required this.title,
+    required this.imageUrl,
+    required this.price,
+    required this.originalPrice,
+    this.rating,
+    this.reviewsCountText,
+    this.isAd = false,
+  });
+}
+
 class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   // Selection states
-  int _selectedImageIndex = 0;
-  int _selectedColorIndex = 0;
+  int _selectedColorIndex = 1; // Default to Brown as shown in reference image
   String _selectedSize = 'M';
   int _quantity = 1;
 
@@ -29,21 +64,18 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   bool _isSizeGuideExpanded = false;
   bool _isReviewsExpanded = false;
 
-  // Curated color options
-  final List<Map<String, dynamic>> _colors = [
-    {'name': 'Purple', 'color': const Color(0xFF6B21A8)},
-    {'name': 'White', 'color': const Color(0xFFF8FAFC)},
-    {'name': 'Black', 'color': const Color(0xFF18181B)},
-    {'name': 'Navy Blue', 'color': const Color(0xFF1E3A8A)},
-    {'name': 'Forest Green', 'color': const Color(0xFF166534)},
-    {'name': 'Beige', 'color': const Color(0xFFD4B996)},
-  ];
+  // 5 Color variants matching reference image
+  late final List<ShirtColorVariant> _colorVariants;
+
+  // PageController for swipeable product banner
+  late final PageController _bannerPageController;
+
+  // ScrollController to transition top header on scroll
+  late final ScrollController _scrollController;
+  bool _isScrolled = false;
 
   // Size options
   final List<String> _sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-
-  // Default gallery images for fashion shirts
-  late final List<String> _galleryImages;
 
   // Dynamic Theme Helpers
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
@@ -60,18 +92,55 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   void initState() {
     super.initState();
     final passedImage = widget.productData['imageUrl'] as String?;
-    _galleryImages = [
-      if (passedImage != null && passedImage.isNotEmpty) passedImage,
-      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800', // Front shot
-      'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800', // Back shot
-      'https://images.unsplash.com/photo-1620012253295-c15c429fccf8?w=800', // Collar close-up
-      'https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=800', // Fabric texture
-      'https://images.unsplash.com/photo-1603252109303-2751441dd157?w=800', // Side model
+    final brownImage = (passedImage != null && passedImage.isNotEmpty)
+        ? passedImage
+        : 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800';
+
+    _colorVariants = [
+      const ShirtColorVariant(
+        name: 'Black',
+        imageUrl: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800',
+        color: Color(0xFF18181B),
+      ),
+      ShirtColorVariant(
+        name: 'Brown',
+        imageUrl: brownImage,
+        color: const Color(0xFF78350F),
+      ),
+      const ShirtColorVariant(
+        name: 'Beige',
+        imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800',
+        color: Color(0xFFD4B996),
+      ),
+      const ShirtColorVariant(
+        name: 'Dark Green',
+        imageUrl: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?w=800',
+        color: Color(0xFF14532D),
+      ),
+      const ShirtColorVariant(
+        name: 'Mustard',
+        imageUrl: 'https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=800',
+        color: Color(0xFFB45309),
+      ),
     ];
 
-    if (_galleryImages.length > 5) {
-      _galleryImages.removeRange(5, _galleryImages.length);
-    }
+    _bannerPageController = PageController(initialPage: _selectedColorIndex);
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      final scrolled = _scrollController.hasClients && _scrollController.offset > 80;
+      if (scrolled != _isScrolled) {
+        setState(() {
+          _isScrolled = scrolled;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _bannerPageController.dispose();
+    super.dispose();
   }
 
   void _copyCouponCode() {
@@ -129,32 +198,37 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     final isTablet = context.screenWidth >= 800;
 
     // Extract product details with fallbacks matching reference image
-    final id = widget.productData['id']?.toString() ?? 'p_urban_shirt';
-    final title = widget.productData['title']?.toString() ?? "Men's Premium Cotton Casual Shirt";
-    final brand = widget.productData['brand']?.toString() ?? 'URBAN CREW';
-    final price = _parseDouble(widget.productData['price'], 1199.0);
-    final originalPrice = _parseDouble(widget.productData['originalPrice'], 1999.0);
-    final rating = _parseDouble(widget.productData['rating'], 4.5);
-    final reviewsCount = _parseReviewsCount(widget.productData['reviewsCount']);
+    final id = widget.productData['id']?.toString() ?? 'p_jackbella_shirt';
+    final title = widget.productData['title']?.toString() ??
+        'JACKBELLA Men Regular Fit Self Design S...';
+    final brand = widget.productData['brand']?.toString() ?? 'JACKBELLA';
+    final price = _parseDouble(widget.productData['price'], 287.0);
+    final originalPrice = _parseDouble(widget.productData['originalPrice'], 1499.0);
+    final rating = _parseDouble(widget.productData['rating'], 3.7);
+    final reviewsCount = _parseReviewsCount(widget.productData['reviewsCount'] ?? 3);
     final description = widget.productData['description']?.toString() ??
-        'Upgrade your wardrobe with this stylish and comfortable casual shirt. Made from premium cotton fabric, it offers a perfect blend of style and comfort for everyday wear.';
+        'JACKBELLA Men Regular Fit Self Design casual shirt. Crafted from breathable, premium blended cotton fabric with curved hemline and tailored spread collar.';
     final category = widget.productData['category']?.toString() ?? 'Shirts';
 
     // Discount percentage
     final discountPercent = originalPrice > price
         ? (((originalPrice - price) / originalPrice) * 100).round()
-        : 40;
+        : 81;
 
     // Watch items for cart & wishlist state
     final wishlist = ref.watch(wishlistProvider);
     final isWishlisted = wishlist.contains(id);
-    final cartList = ref.watch(cartProvider);
+    final allProducts = ref.watch(productsProvider);
+    final similarProducts = _getSimilarProducts(id, category, allProducts);
+    final recentlyViewedProducts = _getRecentlyViewedProducts(id, allProducts);
+
+    final currentVariant = _colorVariants[_selectedColorIndex];
 
     // Reconstruct Product model for operations
     final product = Product(
       id: id,
       title: title,
-      imageUrl: _galleryImages[_selectedImageIndex],
+      imageUrl: currentVariant.imageUrl,
       price: price,
       originalPrice: originalPrice,
       rating: rating,
@@ -169,8 +243,15 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Top Custom App Bar
-            _buildTopAppBar(id, isWishlisted, cartList.length, title),
+            // 1. Top Header with AD Banner Card (Soft blue accent background from screenshot)
+            _buildTopHeader(
+              title: title,
+              discountPercent: discountPercent,
+              price: price,
+              originalPrice: originalPrice,
+              isWishlisted: isWishlisted,
+              productId: id,
+            ),
 
             // 2. Main Scrollable Content
             Expanded(
@@ -185,6 +266,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       rating: rating,
                       reviewsCount: reviewsCount,
                       description: description,
+                      isWishlisted: isWishlisted,
+                      similarProducts: similarProducts,
+                      recentlyViewedProducts: recentlyViewedProducts,
                     )
                   : _buildMobileLayout(
                       product: product,
@@ -196,10 +280,13 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       rating: rating,
                       reviewsCount: reviewsCount,
                       description: description,
+                      isWishlisted: isWishlisted,
+                      similarProducts: similarProducts,
+                      recentlyViewedProducts: recentlyViewedProducts,
                     ),
             ),
 
-            // 3. Sticky Bottom Action Bar
+            // 3. Sticky Bottom Action Bar ("Add to cart" and "Buy now")
             _buildBottomActionBar(product, title),
           ],
         ),
@@ -207,16 +294,19 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
-  // Top App Bar with back, wishlist heart, and cart bag counter
-  Widget _buildTopAppBar(String productId, bool isWishlisted, int cartCount, String title) {
+  // Scrolled Search Top Header matching the screenshot
+  Widget _buildScrolledSearchHeader() {
+    final cartItems = ref.watch(cartProvider);
+    final cartCount = cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      color: const Color(0xFFD6EEFD),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Back Button
-          _buildCircleButton(
-            icon: Icons.arrow_back_rounded,
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
             onTap: () {
               if (Navigator.of(context).canPop()) {
                 context.pop();
@@ -224,73 +314,263 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                 context.go('/home');
               }
             },
+            child: const Padding(
+              padding: EdgeInsets.all(6.0),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                size: 24,
+                color: Color(0xFF1F2937),
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
 
-          // Actions: Wishlist + Cart with Badge
-          Row(
-            children: [
-              // Wishlist Heart Button
-              _buildCircleButton(
-                icon: isWishlisted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                iconColor: isWishlisted ? AppColors.error : _textPrimary,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  ref.read(wishlistProvider.notifier).toggleWishlist(productId);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
-                      ),
-                      duration: const Duration(seconds: 1),
-                      behavior: SnackBarBehavior.floating,
+          // Search Field Pill ("Search for products")
+          Expanded(
+            child: GestureDetector(
+              onTap: () => context.push('/search'),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
                     ),
-                  );
-                },
+                  ],
+                ),
+                child: Row(
+                  children: const [
+                    Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF9CA3AF),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Search for products',
+                      style: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 12),
+            ),
+          ),
+          const SizedBox(width: 12),
 
-              // Cart Button with Red Notification Badge
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  _buildCircleButton(
-                    icon: Icons.shopping_bag_outlined,
-                    iconColor: _textPrimary,
-                    onTap: () => _safePush('/cart'),
+          // Shopping Cart with "0" Badge
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => context.push('/cart'),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(6.0),
+                  child: Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 24,
+                    color: Color(0xFF374151),
                   ),
-                  if (cartCount > 0)
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                        child: Center(
-                          child: Text(
-                            '$cartCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '$cartCount',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        height: 1,
                       ),
                     ),
-                ],
-              ),
-            ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Circular glass-style button used in top bar and share
+  // Top Header matching the screenshot: pale blue bar with Back Button + AD Card
+  Widget _buildTopHeader({
+    required String title,
+    required int discountPercent,
+    required double price,
+    required double originalPrice,
+    required bool isWishlisted,
+    required String productId,
+  }) {
+    if (_isScrolled) {
+      return _buildScrolledSearchHeader();
+    }
+
+    return Container(
+      color: const Color(0xFFD6EEFD),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+      child: Row(
+        children: [
+          // Circular Back Button
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              if (Navigator.of(context).canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                size: 20,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // AD Banner Card
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Green shirt thumbnail
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: const NetworkImageWidget(
+                      imageUrl:
+                          'https://images.unsplash.com/photo-1620012253295-c15c429fccf8?w=200',
+                      width: 42,
+                      height: 42,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Title and price row
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Text(
+                              '↓ $discountPercent%',
+                              style: const TextStyle(
+                                color: Color(0xFF00875A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${originalPrice.toInt()}',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '₹${price.toInt()}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // AD Badge
+                  Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'AD',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Circular glass-style button
   Widget _buildCircleButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -327,7 +607,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
-  // Mobile layout (< 800px)
+  // Mobile layout (< 800px) matching screenshot order
   Widget _buildMobileLayout({
     required Product product,
     required String brand,
@@ -338,65 +618,62 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     required double rating,
     required int reviewsCount,
     required String description,
+    required bool isWishlisted,
+    required List<Product> similarProducts,
+    required List<Product> recentlyViewedProducts,
   }) {
     return ListView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       children: [
-        // 1. Hero Image with Discount Tag
-        _buildHeroImage(discountPercent),
-        const SizedBox(height: 14),
+        // 1. Hero Image with Floating Wishlist/Share, Rating Pill & Slider Track
+        _buildHeroImage(
+          productId: product.id,
+          isWishlisted: isWishlisted,
+          title: title,
+          rating: rating,
+          reviewsCount: reviewsCount,
+        ),
 
-        // 2. Thumbnail Carousel Gallery
-        _buildThumbnailGallery(),
-        const SizedBox(height: 20),
-
-        // 3. Brand, Title & Share Button
-        _buildBrandTitleShare(brand, title),
-        const SizedBox(height: 10),
-
-        // 4. Rating & Reviews
-        _buildRatingReviews(rating, reviewsCount),
-        const SizedBox(height: 16),
-
-        // 5. Price Section
-        _buildPriceSection(price, originalPrice, discountPercent),
-        const SizedBox(height: 18),
-
-        // 6. Extra 10% Off Coupon Banner
-        _buildCouponBanner(),
-        const SizedBox(height: 22),
-
-        // 7. Color Selector
+        // 2. Selected Color Selector with Horizontal Thumbnails
         _buildColorSelector(),
         const SizedBox(height: 22),
 
-        // 8. Size Selector
+        // 3. Size Selector
         _buildSizeSelector(),
         const SizedBox(height: 22),
 
-        // 9. Quantity Stepper
+        // 4. Quantity Stepper
         _buildQuantityStepper(),
-        const SizedBox(height: 30),
+        const SizedBox(height: 26),
 
-        // 10. Product Details Header & Paragraph
+        // 5. Product Details Header & Paragraph
         _buildProductDetailsHeader(description),
         const SizedBox(height: 18),
 
-        // 11. 4 Feature Badges Grid
+        // 6. 4 Feature Badges Grid
         _buildFeatureBadges(),
         const SizedBox(height: 20),
 
-        // 12. Specifications Table Card
+        // 7. Specifications Table Card
         _buildSpecificationsTable(),
-        const SizedBox(height: 26),
+        const SizedBox(height: 24),
 
-        // 13. Delivery Information Card
+        // 8. Delivery Information Card
         _buildDeliveryInfoCard(),
-        const SizedBox(height: 22),
+        const SizedBox(height: 24),
 
-        // 14. Expandable Accordions
+        // 9. Similar Products Suggestion Section (directly below Delivery Information)
+        _buildSimilarProductsSection(similarProducts),
+        const SizedBox(height: 24),
+
+        // 10. Expandable Accordions
         _buildAccordions(rating),
+        const SizedBox(height: 24),
+
+        // 11. Recently Viewed Products (Vertical Section directly below Reviews)
+        _buildRecentlyViewedSection(recentlyViewedProducts),
         const SizedBox(height: 24),
       ],
     );
@@ -413,6 +690,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     required double rating,
     required int reviewsCount,
     required String description,
+    required bool isWishlisted,
+    required List<Product> similarProducts,
+    required List<Product> recentlyViewedProducts,
   }) {
     return Center(
       child: ConstrainedBox(
@@ -422,16 +702,21 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left Column: Hero Image, Gallery, Feature Badges
+              // Left Column: Hero Image, Color Selector, Features, Specs
               Expanded(
                 flex: 5,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     children: [
-                      _buildHeroImage(discountPercent),
-                      const SizedBox(height: 14),
-                      _buildThumbnailGallery(),
+                      _buildHeroImage(
+                        productId: product.id,
+                        isWishlisted: isWishlisted,
+                        title: title,
+                        rating: rating,
+                        reviewsCount: reviewsCount,
+                      ),
+                      _buildColorSelector(),
                       const SizedBox(height: 24),
                       _buildFeatureBadges(),
                       const SizedBox(height: 24),
@@ -442,7 +727,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               ),
               const SizedBox(width: 28),
 
-              // Right Column: Title, Price, Selectors, Delivery, Accordions
+              // Right Column: Title, Price, Selectors, Delivery, Similar Products, Accordions
               Expanded(
                 flex: 6,
                 child: SingleChildScrollView(
@@ -458,8 +743,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       const SizedBox(height: 18),
                       _buildCouponBanner(),
                       const SizedBox(height: 22),
-                      _buildColorSelector(),
-                      const SizedBox(height: 22),
                       _buildSizeSelector(),
                       const SizedBox(height: 22),
                       _buildQuantityStepper(),
@@ -467,8 +750,13 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       _buildProductDetailsHeader(description),
                       const SizedBox(height: 20),
                       _buildDeliveryInfoCard(),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 24),
+                      _buildSimilarProductsSection(similarProducts),
+                      const SizedBox(height: 24),
                       _buildAccordions(rating),
+                      const SizedBox(height: 24),
+                      _buildRecentlyViewedSection(recentlyViewedProducts),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -480,121 +768,253 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
-  // 1. Hero Image with -40% Badge
-  Widget _buildHeroImage(int discountPercent) {
-    return Stack(
+  // 1. Hero Image with Floating Wishlist/Share buttons, Rating Chip & Slider Progress Line
+  Widget _buildHeroImage({
+    required String productId,
+    required bool isWishlisted,
+    required String title,
+    required double rating,
+    required int reviewsCount,
+  }) {
+    return Column(
       children: [
-        Container(
-          width: double.infinity,
-          height: 380,
-          decoration: BoxDecoration(
-            color: _cardBgColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _cardBorderColor, width: 1),
-            boxShadow: _isDark
-                ? null
-                : [
+        Stack(
+          children: [
+            // Swipeable Product Banner Images
+            Container(
+              width: double.infinity,
+              height: 440,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: PageView.builder(
+                  controller: _bannerPageController,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _colorVariants.length,
+                  onPageChanged: (index) {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _selectedColorIndex = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return NetworkImageWidget(
+                      imageUrl: _colorVariants[index].imageUrl,
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Top-Right Floating Action Buttons: Wishlist & Share
+            Positioned(
+              top: 14,
+              right: 14,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Wishlist Button (Heart with mini plus badge)
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          ref.read(wishlistProvider.notifier).toggleWishlist(productId);
+                        },
+                        child: Center(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                isWishlisted
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: isWishlisted ? Colors.red : Colors.black87,
+                                size: 22,
+                              ),
+                              if (!isWishlisted)
+                                const Positioned(
+                                  top: 10,
+                                  right: 9,
+                                  child: Icon(
+                                    Icons.add,
+                                    size: 10,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Share Button (Paper airplane rotated)
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => _shareProduct(title),
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: -0.25,
+                            child: const Icon(
+                              Icons.send_outlined,
+                              color: Colors.black87,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Bottom-Left Floating Rating Pill
+            Positioned(
+              bottom: 14,
+              left: 14,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: NetworkImageWidget(
-              imageUrl: _galleryImages[_selectedImageIndex],
-              fit: BoxFit.cover,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFF00875A),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '|',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '$reviewsCount',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
 
-        // Discount Pill Badge (-40%)
-        Positioned(
-          top: 16,
-          left: 16,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _isDark
-                  ? _primaryColor.withValues(alpha: 0.22)
-                  : AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _primaryColor.withValues(alpha: 0.35),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              '-$discountPercent%',
-              style: TextStyle(
-                color: _isDark ? const Color(0xFF6EE7B7) : AppColors.primaryDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
+        // Carousel Slider Progress Indicator Bar with real-time sliding sync
+        Container(
+          margin: const EdgeInsets.only(top: 8, bottom: 16),
+          height: 2.5,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final segWidth = constraints.maxWidth / _colorVariants.length;
+              return AnimatedBuilder(
+                animation: _bannerPageController,
+                builder: (context, _) {
+                  final page = _bannerPageController.hasClients &&
+                          _bannerPageController.page != null
+                      ? _bannerPageController.page!
+                      : _selectedColorIndex.toDouble();
+                  final leftOffset = (page * segWidth).clamp(
+                    0.0,
+                    constraints.maxWidth - segWidth,
+                  );
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: leftOffset,
+                        top: 0,
+                        bottom: 0,
+                        width: segWidth,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
-    );
-  }
-
-  // 2. Thumbnail Carousel Gallery
-  Widget _buildThumbnailGallery() {
-    return SizedBox(
-      height: 68,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(_galleryImages.length, (index) {
-          final isSelected = _selectedImageIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() {
-                  _selectedImageIndex = index;
-                });
-              },
-              child: Container(
-                margin: EdgeInsets.only(
-                  right: index < _galleryImages.length - 1 ? 8.0 : 0.0,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? _primaryColor : _cardBorderColor,
-                    width: isSelected ? 2.5 : 1.0,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: _primaryColor.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: NetworkImageWidget(
-                    imageUrl: _galleryImages[index],
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
     );
   }
 
@@ -809,71 +1229,97 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
-  // 7. Color Selector
+  // 7. Selected Color Variant Selector with Horizontal Thumbnails matching screenshot
   Widget _buildColorSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text.rich(
-          TextSpan(
-            text: 'Color: ',
-            style: TextStyle(
-              color: _textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-            children: [
-              TextSpan(
-                text: _colors[_selectedColorIndex]['name'] as String,
-                style: TextStyle(
-                  color: _primaryColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+        // Heading: "Selected Color: Brown"
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text.rich(
+            TextSpan(
+              text: 'Selected Color: ',
+              style: TextStyle(
+                color: _textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-            ],
+              children: [
+                TextSpan(
+                  text: _colorVariants[_selectedColorIndex].name,
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontWeight: FontWeight.normal,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 10,
-          children: List.generate(_colors.length, (index) {
-            final isSelected = _selectedColorIndex == index;
-            final color = _colors[index]['color'] as Color;
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() {
-                  _selectedColorIndex = index;
-                });
-              },
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? _primaryColor : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-                padding: const EdgeInsets.all(3),
+
+        // Horizontal Row of Color Variant Thumbnails
+        SizedBox(
+          height: 98,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _colorVariants.length,
+            itemBuilder: (context, index) {
+              final isSelected = _selectedColorIndex == index;
+              final variant = _colorVariants[index];
+
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _selectedColorIndex = index;
+                  });
+                  if (_bannerPageController.hasClients) {
+                    _bannerPageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                },
                 child: Container(
+                  width: 68,
+                  height: 94,
+                  margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+                    color: _cardBgColor,
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: color == const Color(0xFF18181B)
-                          ? _cardBorderColor
-                          : Colors.transparent,
-                      width: 1,
+                      color: isSelected
+                          ? (_isDark ? Colors.white : Colors.black)
+                          : (_isDark ? AppColors.borderDark : Colors.grey.shade300),
+                      width: isSelected ? 2.0 : 1.2,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  padding: const EdgeInsets.all(2.5),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: NetworkImageWidget(
+                      imageUrl: variant.imageUrl,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -1282,6 +1728,340 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
+  // Curated & Dynamic Similar Products
+  List<Product> _getSimilarProducts(
+    String currentId,
+    String currentCategory,
+    List<Product> allProducts,
+  ) {
+    final curatedSimilarShirts = [
+      const Product(
+        id: 'sim_1',
+        title: 'JACKBELLA Men Slim Fit Solid Casual Shirt',
+        imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500',
+        price: 299.0,
+        originalPrice: 1499.0,
+        rating: 4.2,
+        reviewsCount: 88,
+        weight: 'M',
+        description: 'Navy blue slim fit cotton shirt with spread collar and curved hem.',
+        category: 'Shirts',
+      ),
+      const Product(
+        id: 'sim_2',
+        title: 'JACKBELLA Men Regular Fit Textured Shirt',
+        imageUrl: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?w=500',
+        price: 319.0,
+        originalPrice: 1599.0,
+        rating: 4.4,
+        reviewsCount: 142,
+        weight: 'L',
+        description: 'Bottle green textured full-sleeve shirt with wooden buttons.',
+        category: 'Shirts',
+      ),
+      const Product(
+        id: 'sim_3',
+        title: 'URBAN CREW Men Premium Cotton Shirt',
+        imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=500',
+        price: 349.0,
+        originalPrice: 1699.0,
+        rating: 4.5,
+        reviewsCount: 215,
+        weight: 'M',
+        description: 'Off-white breathable summer cotton casual shirt.',
+        category: 'Shirts',
+      ),
+      const Product(
+        id: 'sim_4',
+        title: 'JACKBELLA Men Caramel Tan Casual Shirt',
+        imageUrl: 'https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=500',
+        price: 287.0,
+        originalPrice: 1499.0,
+        rating: 4.1,
+        reviewsCount: 64,
+        weight: 'L',
+        description: 'Caramel tan regular fit smart casual shirt for men.',
+        category: 'Shirts',
+      ),
+      const Product(
+        id: 'sim_5',
+        title: 'Blaq Ash Men Formal Solid Black Shirt',
+        imageUrl: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500',
+        price: 369.0,
+        originalPrice: 1899.0,
+        rating: 4.6,
+        reviewsCount: 198,
+        weight: 'XL',
+        description: 'Deep black crisp formal shirt with anti-wrinkle finish.',
+        category: 'Shirts',
+      ),
+    ];
+
+    final otherProducts = allProducts.where((p) => p.id != currentId).toList();
+    return [...curatedSimilarShirts.where((p) => p.id != currentId), ...otherProducts];
+  }
+
+  // Similar Products Suggestion Section directly below Delivery Information
+  Widget _buildSimilarProductsSection(List<Product> similarProducts) {
+    if (similarProducts.isEmpty) return const SizedBox.shrink();
+
+    final wishlist = ref.watch(wishlistProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Similar Products',
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Customers also frequently viewed',
+                  style: TextStyle(
+                    color: _textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _isDark
+                    ? _primaryColor.withValues(alpha: 0.2)
+                    : AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${similarProducts.length} items',
+                style: TextStyle(
+                  color: _isDark ? const Color(0xFF6EE7B7) : AppColors.primaryDark,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Horizontal Product Cards Carousel
+        SizedBox(
+          height: 255,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: similarProducts.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final item = similarProducts[index];
+              final isItemWishlisted = wishlist.contains(item.id);
+              final origPrice = item.originalPrice ?? (item.price * 1.6);
+              final discount = origPrice > item.price
+                  ? (((origPrice - item.price) / origPrice) * 100).round()
+                  : 40;
+
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  context.push(
+                    '/product-details',
+                    extra: {
+                      'id': item.id,
+                      'title': item.title,
+                      'imageUrl': item.imageUrl,
+                      'price': item.price,
+                      'originalPrice': origPrice,
+                      'rating': item.rating,
+                      'reviewsCount': item.reviewsCount,
+                      'weight': item.weight,
+                      'description': item.description,
+                      'category': item.category,
+                    },
+                  );
+                },
+                child: Container(
+                  width: 160,
+                  decoration: BoxDecoration(
+                    color: _cardBgColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _cardBorderColor, width: 1),
+                    boxShadow: _isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Product Image with Wishlist Button & Rating Pill
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                            child: SizedBox(
+                              width: 160,
+                              height: 145,
+                              child: NetworkImageWidget(
+                                imageUrl: item.imageUrl,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+
+                          // Wishlist Toggle Button
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                ref.read(wishlistProvider.notifier).toggleWishlist(item.id);
+                              },
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  isItemWishlisted
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isItemWishlisted ? Colors.red : Colors.black87,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Rating Pill on Image
+                          Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    item.rating.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Color(0xFF00875A),
+                                    size: 13,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Product Details
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.25,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Text(
+                                  '₹${item.price.toInt()}',
+                                  style: TextStyle(
+                                    color: _textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '₹${origPrice.toInt()}',
+                                  style: TextStyle(
+                                    color: _textMuted,
+                                    fontSize: 11.5,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$discount% off',
+                              style: const TextStyle(
+                                color: Color(0xFF00875A),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   // 14. Expandable Accordions (Product Description, Size Guide, Reviews)
   Widget _buildAccordions(double rating) {
     return Column(
@@ -1535,118 +2315,424 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     );
   }
 
-  // 15. Sticky Bottom Action Bar (Buy Now & Add to Cart)
+  // Curated & Dynamic Recently Viewed Products
+  List<Product> _getRecentlyViewedProducts(
+    String currentId,
+    List<Product> allProducts,
+  ) {
+    return allProducts.where((p) => p.id != currentId).toList();
+  }
+
+  // Number formatting helper (e.g. 1499 -> "1,499", 499 -> "499")
+  String _formatPriceNoSymbol(double price) {
+    final intPrice = price.toInt();
+    if (intPrice >= 1000) {
+      final str = intPrice.toString();
+      final thousands = str.substring(0, str.length - 3);
+      final hundreds = str.substring(str.length - 3);
+      return '$thousands,$hundreds';
+    }
+    return intPrice.toString();
+  }
+
+  // Curated 6 Products from the uploaded reference image
+  static const List<GridSuggestedProduct> _gridSuggestedProducts = [
+    GridSuggestedProduct(
+      id: 'himas_1',
+      brand: 'HIMAS',
+      title: 'Men Regular Fit S...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600',
+      price: 310,
+      originalPrice: 499,
+      rating: 4.3,
+      reviewsCountText: '9',
+      isAd: false,
+    ),
+    GridSuggestedProduct(
+      id: 'spoque_2',
+      brand: 'SPOQUE',
+      title: 'Men Regular Fit ...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1620012253295-c15c429fccf8?w=600',
+      price: 367,
+      originalPrice: 1499,
+      rating: 4.1,
+      reviewsCountText: '4.8K+',
+      isAd: true,
+    ),
+    GridSuggestedProduct(
+      id: 'javier_3',
+      brand: 'javier',
+      title: 'Men Regular Fit Em...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1603252109303-2751441dd157?w=600',
+      price: 285,
+      originalPrice: 1299,
+      rating: 4.2,
+      reviewsCountText: '40',
+      isAd: false,
+    ),
+    GridSuggestedProduct(
+      id: 'growwax_4',
+      brand: 'Growwax',
+      title: 'Men Regular Fi...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600',
+      price: 348,
+      originalPrice: 999,
+      isAd: false,
+    ),
+    GridSuggestedProduct(
+      id: 'sopani_5',
+      brand: 'SOPANI',
+      title: 'Men Regular Fit ...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=600',
+      price: 299,
+      originalPrice: 1199,
+      isAd: true,
+    ),
+    GridSuggestedProduct(
+      id: 'varidashi_6',
+      brand: 'Varidashi',
+      title: 'Men Regular Fi...',
+      imageUrl:
+          'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600',
+      price: 329,
+      originalPrice: 1399,
+      isAd: false,
+    ),
+  ];
+
+  // 2-Column Product Card strictly matching the screenshot layout
+  Widget _buildGridProductCard(GridSuggestedProduct item) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        context.push(
+          '/product-details',
+          extra: {
+            'id': item.id,
+            'title': '${item.brand} ${item.title}',
+            'imageUrl': item.imageUrl,
+            'price': item.price,
+            'originalPrice': item.originalPrice,
+            'rating': item.rating ?? 4.2,
+            'reviewsCount': int.tryParse(item.reviewsCountText?.replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 50,
+            'weight': 'M',
+            'description': '${item.brand} Men Regular Fit Casual Shirt. Crafted with soft breathable fabric for all-day comfort.',
+            'category': 'Shirts',
+          },
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Image with Rounded Corners + Badges
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 0.82,
+                  child: Container(
+                    color: _isDark ? AppColors.surfaceDark : Colors.grey.shade100,
+                    child: NetworkImageWidget(
+                      imageUrl: item.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Top-right AD badge (if sponsored)
+              if (item.isAd)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'AD',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Bottom-left Rating Badge Pill
+              if (item.rating != null)
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.rating!.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFF00875A), // Green star from screenshot!
+                          size: 13,
+                        ),
+                        if (item.reviewsCountText != null) ...[
+                          Container(
+                            height: 10,
+                            width: 1,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            color: Colors.grey.shade300,
+                          ),
+                          Text(
+                            item.reviewsCountText!,
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 2. Brand & Title (HIMAS Men Regular Fit S...)
+          RichText(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 13,
+                color: _textPrimary,
+              ),
+              children: [
+                TextSpan(
+                  text: '${item.brand} ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text: item.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.normal,
+                    color: _textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          // 3. Price Row (499 ₹310)
+          Row(
+            children: [
+              Text(
+                _formatPriceNoSymbol(item.originalPrice),
+                style: TextStyle(
+                  color: _textMuted,
+                  fontSize: 12.5,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '₹${_formatPriceNoSymbol(item.price)}',
+                style: TextStyle(
+                  color: _textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Vertical 2-Column Product Grid Section matching the uploaded reference image
+  Widget _buildRecentlyViewedSection(List<Product> recentlyViewed) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < _gridSuggestedProducts.length; i += 2) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column Item
+                Expanded(
+                  child: _buildGridProductCard(_gridSuggestedProducts[i]),
+                ),
+                const SizedBox(width: 14),
+                // Right Column Item
+                Expanded(
+                  child: (i + 1 < _gridSuggestedProducts.length)
+                      ? _buildGridProductCard(_gridSuggestedProducts[i + 1])
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // 15. Sticky Bottom Action Bar ("Add to cart" & "Buy now" matching screenshot)
   Widget _buildBottomActionBar(Product product, String title) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: _isDark ? AppColors.surfaceDark : Colors.white,
         border: Border(
-          top: BorderSide(color: _cardBorderColor, width: 1),
+          top: BorderSide(
+            color: _isDark ? AppColors.borderDark : Colors.grey.shade200,
+            width: 1,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _isDark ? 0.35 : 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+            color: Colors.black.withValues(alpha: _isDark ? 0.35 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // "Buy Now" themed pill button
-          Expanded(
-            flex: 4,
-            child: SizedBox(
-              height: 52,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: _isDark ? AppColors.bgDark : Colors.white,
-                  side: BorderSide(color: _cardBorderColor, width: 1.2),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  ref.read(cartProvider.notifier).addToCart(product, qty: _quantity);
-                  _safePush('/checkout');
-                },
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'Buy Now',
-                    style: TextStyle(
-                      color: _textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Left Button: "Add to cart" (White with subtle border and rounded pill shape)
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: _isDark ? AppColors.bgDark : Colors.white,
+                    side: BorderSide(
+                      color: _isDark ? AppColors.borderDark : Colors.grey.shade300,
+                      width: 1.2,
                     ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // "Add to Cart" vibrant primary emerald pill button
-          Expanded(
-            flex: 6,
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  elevation: 4,
-                  shadowColor: _primaryColor.withValues(alpha: 0.4),
-                ),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  ref.read(cartProvider.notifier).addToCart(product, qty: _quantity);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Added $_quantity x $title ($_selectedSize) to Cart!',
-                      ),
-                      backgroundColor: _primaryColor,
-                      behavior: SnackBarBehavior.floating,
-                      action: SnackBarAction(
-                        label: 'View Cart',
-                        textColor: Colors.white,
-                        onPressed: () => _safePush('/cart'),
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                  );
-                },
-                child: const FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
-                      SizedBox(width: 6),
-                      Text(
-                        'Add to Cart',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    ref.read(cartProvider.notifier).addToCart(
+                          product,
+                          qty: _quantity,
+                        );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Added $_quantity x $title (${_colorVariants[_selectedColorIndex].name}, $_selectedSize) to Cart!',
+                        ),
+                        backgroundColor: const Color(0xFF1F2937),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: 'View Cart',
+                          textColor: const Color(0xFFFFD200),
+                          onPressed: () => _safePush('/cart'),
                         ),
                       ),
-                    ],
+                    );
+                  },
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Add to cart',
+                      style: TextStyle(
+                        color: _textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+
+            // Right Button: "Buy now" (Vivid Yellow #FFD200 with rounded pill shape)
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFD200),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    ref.read(cartProvider.notifier).addToCart(
+                          product,
+                          qty: _quantity,
+                        );
+                    _safePush('/checkout');
+                  },
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Buy now',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

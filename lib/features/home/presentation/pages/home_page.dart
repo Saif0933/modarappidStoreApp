@@ -9,6 +9,7 @@ import '../../../../core/widgets/category_card.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
 import '../../../../core/widgets/discount_offers_banner.dart';
 import '../../../../core/widgets/product_card.dart';
+import '../../../../core/widgets/suggested_product_card.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../shared/providers/products_provider.dart';
 
@@ -58,6 +59,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final selectedAddress = ref.watch(selectedAddressProvider);
 
     // Filtered products
+    final suggestedProducts = products.take(6).toList();
     final popularProducts = products.where((p) => p.isPopular).toList();
     final recommendedProducts = products.where((p) => p.isRecommended).toList();
     final trendingProducts = products.where((p) => p.isTrending).toList();
@@ -270,6 +272,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   const SizedBox(height: AppConstants.spaceL),
 
+                  // Suggested For You (3-Column Grid matching screenshot!)
+                  _buildSuggestedGridSection(
+                    context: context,
+                    ref: ref,
+                    title: 'Suggested For You',
+                    productList: suggestedProducts,
+                    wishlist: wishlist,
+                  ),
+
                   // Popular Products (Horizontal Slider)
                   _buildProductSection(
                     context: context,
@@ -328,7 +339,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   color: isDark ? AppColors.bgDark : AppColors.bgLight,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -368,7 +379,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -426,6 +437,118 @@ class _HomePageState extends ConsumerState<HomePage> {
     ),
   ),
 );
+  }
+
+  Widget _buildSuggestedGridSection({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String title,
+    required List<Product> productList,
+    required Set<String> wishlist,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    if (productList.isEmpty) return const SizedBox.shrink();
+
+    final width = MediaQuery.sizeOf(context).width;
+    final int cols;
+    final double childAspectRatio;
+
+    if (width < 600) {
+      // Phone: 3 columns matching screenshot!
+      cols = 3;
+      childAspectRatio = 0.54;
+    } else if (width < 900) {
+      // Tablet Portrait: 4 columns
+      cols = 4;
+      childAspectRatio = 0.62;
+    } else {
+      // Tablet Landscape / Desktop: 6 columns
+      cols = 6;
+      childAspectRatio = 0.65;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.spaceM,
+            vertical: AppConstants.spaceS,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 19,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.go('/categories'),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark : const Color(0xFF1E1E1E),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: productList.length.clamp(0, cols * 2),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              childAspectRatio: childAspectRatio,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 14,
+            ),
+            itemBuilder: (context, index) {
+              final product = productList[index];
+              return SuggestedProductCard(
+                id: product.id,
+                title: product.title,
+                imageUrl: product.imageUrl,
+                price: product.price,
+                originalPrice: product.originalPrice,
+                bankOfferPrice: product.bankOfferPrice,
+                onTap: () => context.push(
+                  '/product-details',
+                  extra: {
+                    'id': product.id,
+                    'title': product.title,
+                    'imageUrl': product.imageUrl,
+                    'price': product.price,
+                    'originalPrice': product.originalPrice,
+                    'rating': product.rating,
+                    'reviewsCount': product.reviewsCount,
+                    'weight': product.weight,
+                    'description': product.description,
+                    'category': product.category,
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppConstants.spaceL),
+      ],
+    );
   }
 
   Widget _buildProductSection({
