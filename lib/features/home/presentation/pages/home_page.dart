@@ -9,9 +9,7 @@ import '../../../../core/widgets/category_card.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
 import '../../../../core/widgets/discount_offers_banner.dart';
 import '../../../../core/widgets/feed_product_card.dart';
-import '../../../../core/widgets/product_card.dart';
 import '../../../../core/widgets/suggested_product_card.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../../../shared/providers/products_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -62,7 +60,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Filtered products
     final suggestedProducts = products.take(6).toList();
     final feedProducts = products.where((p) => p.id.startsWith('feed_')).toList();
-    final recentlyViewed = products.sublist(0, 3); // Mock recently viewed
 
     // Mock Banner URLs (Fashion)
     final List<String> bannerUrls = [
@@ -286,15 +283,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                     productList: feedProducts.isNotEmpty
                         ? feedProducts
                         : products.take(6).toList(),
-                  ),
-
-                  // Recently Viewed (Horizontal Slider)
-                  _buildProductSection(
-                    context: context,
-                    ref: ref,
-                    title: 'Recently Viewed',
-                    productList: recentlyViewed,
-                    wishlist: wishlist,
                   ),
 
                   const SizedBox(height: AppConstants.spaceXXL),
@@ -601,115 +589,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                     'description': product.description,
                     'category': product.category,
                   },
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: AppConstants.spaceL),
-      ],
-    );
-  }
-
-  Widget _buildProductSection({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String title,
-    required List<Product> productList,
-    required Set<String> wishlist,
-  }) {
-    final theme = Theme.of(context);
-    if (productList.isEmpty) return const SizedBox.shrink();
-
-    final isTablet = context.isTabletOrDesktop;
-    final cardHeight = isTablet ? 290.0 : 250.0;
-    final cardWidth = isTablet ? 190.0 : 160.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.spaceM,
-            vertical: AppConstants.spaceS,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: cardHeight,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.spaceM,
-            ),
-            physics: const BouncingScrollPhysics(),
-            itemCount: productList.length,
-            itemBuilder: (context, index) {
-              final product = productList[index];
-              return Padding(
-                padding: const EdgeInsets.only(
-                  right: AppConstants.spaceM,
-                  bottom: 8.0,
-                  top: 4.0,
-                ),
-                child: SizedBox(
-                  width: cardWidth,
-                  child: ProductCard(
-                    id: product.id,
-                    title: product.title,
-                    imageUrl: product.imageUrl,
-                    price: product.price,
-                    originalPrice: product.originalPrice,
-                    rating: product.rating,
-                    reviewsCount: product.reviewsCount,
-                    weight: product.weight,
-                    isWishlisted: wishlist.contains(product.id),
-                    onTap: () => context.push(
-                      '/product-details',
-                      extra: {
-                        'id': product.id,
-                        'title': product.title,
-                        'imageUrl': product.imageUrl,
-                        'price': product.price,
-                        'originalPrice': product.originalPrice,
-                        'rating': product.rating,
-                        'reviewsCount': product.reviewsCount,
-                        'weight': product.weight,
-                        'description': product.description,
-                        'category': product.category,
-                      },
-                    ),
-                    onAddToCart: () {
-                      ref.read(cartProvider.notifier).addToCart(product);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.title} added to cart!'),
-                          duration: const Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    onWishlistTap: () {
-                      ref
-                          .read(wishlistProvider.notifier)
-                          .toggleWishlist(product.id);
-                    },
-                  ),
                 ),
               );
             },

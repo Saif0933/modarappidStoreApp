@@ -29,30 +29,6 @@ class ShirtColorVariant {
   });
 }
 
-class GridSuggestedProduct {
-  final String id;
-  final String brand;
-  final String title;
-  final String imageUrl;
-  final double price;
-  final double originalPrice;
-  final double? rating;
-  final String? reviewsCountText;
-  final bool isAd;
-
-  const GridSuggestedProduct({
-    required this.id,
-    required this.brand,
-    required this.title,
-    required this.imageUrl,
-    required this.price,
-    required this.originalPrice,
-    this.rating,
-    this.reviewsCountText,
-    this.isAd = false,
-  });
-}
-
 class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   // Selection states
   int _selectedColorIndex = 1; // Default to Brown as shown in reference image
@@ -220,7 +196,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     final isWishlisted = wishlist.contains(id);
     final allProducts = ref.watch(productsProvider);
     final similarProducts = _getSimilarProducts(id, category, allProducts);
-    final recentlyViewedProducts = _getRecentlyViewedProducts(id, allProducts);
 
     final currentVariant = _colorVariants[_selectedColorIndex];
 
@@ -268,7 +243,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       description: description,
                       isWishlisted: isWishlisted,
                       similarProducts: similarProducts,
-                      recentlyViewedProducts: recentlyViewedProducts,
                     )
                   : _buildMobileLayout(
                       product: product,
@@ -282,7 +256,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       description: description,
                       isWishlisted: isWishlisted,
                       similarProducts: similarProducts,
-                      recentlyViewedProducts: recentlyViewedProducts,
                     ),
             ),
 
@@ -620,7 +593,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     required String description,
     required bool isWishlisted,
     required List<Product> similarProducts,
-    required List<Product> recentlyViewedProducts,
   }) {
     return ListView(
       controller: _scrollController,
@@ -671,10 +643,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
         // 10. Expandable Accordions
         _buildAccordions(rating),
         const SizedBox(height: 24),
-
-        // 11. Recently Viewed Products (Vertical Section directly below Reviews)
-        _buildRecentlyViewedSection(recentlyViewedProducts),
-        const SizedBox(height: 24),
       ],
     );
   }
@@ -692,7 +660,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     required String description,
     required bool isWishlisted,
     required List<Product> similarProducts,
-    required List<Product> recentlyViewedProducts,
   }) {
     return Center(
       child: ConstrainedBox(
@@ -754,8 +721,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       _buildSimilarProductsSection(similarProducts),
                       const SizedBox(height: 24),
                       _buildAccordions(rating),
-                      const SizedBox(height: 24),
-                      _buildRecentlyViewedSection(recentlyViewedProducts),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -2312,308 +2277,6 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           ),
         ],
       ),
-    );
-  }
-
-  // Curated & Dynamic Recently Viewed Products
-  List<Product> _getRecentlyViewedProducts(
-    String currentId,
-    List<Product> allProducts,
-  ) {
-    return allProducts.where((p) => p.id != currentId).toList();
-  }
-
-  // Number formatting helper (e.g. 1499 -> "1,499", 499 -> "499")
-  String _formatPriceNoSymbol(double price) {
-    final intPrice = price.toInt();
-    if (intPrice >= 1000) {
-      final str = intPrice.toString();
-      final thousands = str.substring(0, str.length - 3);
-      final hundreds = str.substring(str.length - 3);
-      return '$thousands,$hundreds';
-    }
-    return intPrice.toString();
-  }
-
-  // Curated 6 Products from the uploaded reference image
-  static const List<GridSuggestedProduct> _gridSuggestedProducts = [
-    GridSuggestedProduct(
-      id: 'himas_1',
-      brand: 'HIMAS',
-      title: 'Men Regular Fit S...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600',
-      price: 310,
-      originalPrice: 499,
-      rating: 4.3,
-      reviewsCountText: '9',
-      isAd: false,
-    ),
-    GridSuggestedProduct(
-      id: 'spoque_2',
-      brand: 'SPOQUE',
-      title: 'Men Regular Fit ...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1620012253295-c15c429fccf8?w=600',
-      price: 367,
-      originalPrice: 1499,
-      rating: 4.1,
-      reviewsCountText: '4.8K+',
-      isAd: true,
-    ),
-    GridSuggestedProduct(
-      id: 'javier_3',
-      brand: 'javier',
-      title: 'Men Regular Fit Em...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1603252109303-2751441dd157?w=600',
-      price: 285,
-      originalPrice: 1299,
-      rating: 4.2,
-      reviewsCountText: '40',
-      isAd: false,
-    ),
-    GridSuggestedProduct(
-      id: 'growwax_4',
-      brand: 'Growwax',
-      title: 'Men Regular Fi...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600',
-      price: 348,
-      originalPrice: 999,
-      isAd: false,
-    ),
-    GridSuggestedProduct(
-      id: 'sopani_5',
-      brand: 'SOPANI',
-      title: 'Men Regular Fit ...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=600',
-      price: 299,
-      originalPrice: 1199,
-      isAd: true,
-    ),
-    GridSuggestedProduct(
-      id: 'varidashi_6',
-      brand: 'Varidashi',
-      title: 'Men Regular Fi...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600',
-      price: 329,
-      originalPrice: 1399,
-      isAd: false,
-    ),
-  ];
-
-  // 2-Column Product Card strictly matching the screenshot layout
-  Widget _buildGridProductCard(GridSuggestedProduct item) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        context.push(
-          '/product-details',
-          extra: {
-            'id': item.id,
-            'title': '${item.brand} ${item.title}',
-            'imageUrl': item.imageUrl,
-            'price': item.price,
-            'originalPrice': item.originalPrice,
-            'rating': item.rating ?? 4.2,
-            'reviewsCount': int.tryParse(item.reviewsCountText?.replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 50,
-            'weight': 'M',
-            'description': '${item.brand} Men Regular Fit Casual Shirt. Crafted with soft breathable fabric for all-day comfort.',
-            'category': 'Shirts',
-          },
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Image with Rounded Corners + Badges
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: 0.82,
-                  child: Container(
-                    color: _isDark ? AppColors.surfaceDark : Colors.grey.shade100,
-                    child: NetworkImageWidget(
-                      imageUrl: item.imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Top-right AD badge (if sponsored)
-              if (item.isAd)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'AD',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Bottom-left Rating Badge Pill
-              if (item.rating != null)
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          item.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFF00875A), // Green star from screenshot!
-                          size: 13,
-                        ),
-                        if (item.reviewsCountText != null) ...[
-                          Container(
-                            height: 10,
-                            width: 1,
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            color: Colors.grey.shade300,
-                          ),
-                          Text(
-                            item.reviewsCountText!,
-                            style: const TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // 2. Brand & Title (HIMAS Men Regular Fit S...)
-          RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 13,
-                color: _textPrimary,
-              ),
-              children: [
-                TextSpan(
-                  text: '${item.brand} ',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text: item.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.normal,
-                    color: _textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 3),
-
-          // 3. Price Row (499 ₹310)
-          Row(
-            children: [
-              Text(
-                _formatPriceNoSymbol(item.originalPrice),
-                style: TextStyle(
-                  color: _textMuted,
-                  fontSize: 12.5,
-                  decoration: TextDecoration.lineThrough,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '₹${_formatPriceNoSymbol(item.price)}',
-                style: TextStyle(
-                  color: _textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Vertical 2-Column Product Grid Section matching the uploaded reference image
-  Widget _buildRecentlyViewedSection(List<Product> recentlyViewed) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < _gridSuggestedProducts.length; i += 2) ...[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 18.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left Column Item
-                Expanded(
-                  child: _buildGridProductCard(_gridSuggestedProducts[i]),
-                ),
-                const SizedBox(width: 14),
-                // Right Column Item
-                Expanded(
-                  child: (i + 1 < _gridSuggestedProducts.length)
-                      ? _buildGridProductCard(_gridSuggestedProducts[i + 1])
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
     );
   }
 
