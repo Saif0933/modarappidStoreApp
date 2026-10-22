@@ -163,7 +163,7 @@ class AddressListPage extends ConsumerWidget {
                           SwitchListTile(
                             title: const Text('Set as Default Address', style: TextStyle(fontSize: 14)),
                             value: isDefault,
-                            activeColor: AppColors.primary,
+                            activeThumbColor: AppColors.primary,
                             onChanged: (val) {
                               setSheetState(() {
                                 isDefault = val;
@@ -226,155 +226,232 @@ class AddressListPage extends ConsumerWidget {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.contentCardWidth),
-            child: Column(
-              children: [
-                Expanded(
-                  child: addresses.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.location_off_rounded, size: 64, color: AppColors.textSecondaryLight),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No Saved Addresses',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.maxContentWidth),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= ResponsiveBreakpoints.tabletMin;
+                final isDesktop = constraints.maxWidth >= ResponsiveBreakpoints.desktopMin;
+
+                return Column(
+                  children: [
+                    Expanded(
+                      child: addresses.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.location_off_rounded, size: 64, color: AppColors.textSecondaryLight),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No Saved Addresses',
+                                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text('Save delivery locations to checkout faster.'),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              const Text('Save delivery locations to checkout faster.'),
-                            ],
+                            )
+                          : isWide
+                              ? GridView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.all(AppConstants.spaceL),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: isDesktop ? 3 : 2,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    mainAxisExtent: 220,
+                                  ),
+                                  itemCount: addresses.length,
+                                  itemBuilder: (context, index) {
+                                    final address = addresses[index];
+                                    final isSelected = selectedAddress?.id == address.id;
+                                    return _buildAddressCard(
+                                      context: context,
+                                      ref: ref,
+                                      address: address,
+                                      isSelected: isSelected,
+                                      isDark: isDark,
+                                      theme: theme,
+                                    );
+                                  },
+                                )
+                              : ListView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.all(AppConstants.spaceM),
+                                  itemCount: addresses.length,
+                                  itemBuilder: (context, index) {
+                                    final address = addresses[index];
+                                    final isSelected = selectedAddress?.id == address.id;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: _buildAddressCard(
+                                        context: context,
+                                        ref: ref,
+                                        address: address,
+                                        isSelected: isSelected,
+                                        isDark: isDark,
+                                        theme: theme,
+                                      ),
+                                    );
+                                  },
+                                ),
+                    ),
+
+                    // Bottom Add Button (Responsive max width)
+                    Padding(
+                      padding: const EdgeInsets.all(AppConstants.spaceM),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: PrimaryButton(
+                            text: 'Add New Address',
+                            onPressed: () => context.push('/add-address'),
                           ),
-                        )
-                      : ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.all(AppConstants.spaceM),
-                          itemCount: addresses.length,
-                          itemBuilder: (context, index) {
-                            final address = addresses[index];
-                            final isSelected = selectedAddress?.id == address.id;
-
-                            return GestureDetector(
-                              onTap: () {
-                                ref.read(selectedAddressProvider.notifier).state = address;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Active delivery set to ${address.name}.'),
-                                    duration: const Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                                  border: Border.all(
-                                    color: isSelected 
-                                        ? AppColors.primary 
-                                        : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                                    width: isSelected ? 1.5 : 1.0,
-                                  ),
-                                  boxShadow: AppConstants.lowShadow,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Title Line Name & Select indicators
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              address.name,
-                                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                            ),
-                                            if (address.isDefault) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primaryLight.withValues(alpha: isDark ? 0.2 : 0.8),
-                                                  borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                                                ),
-                                                child: const Text(
-                                                  'Default',
-                                                  style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        Icon(
-                                          isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-                                          color: isSelected ? AppColors.primary : AppColors.textMutedLight,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Address line
-                                    Text(
-                                      address.addressLine,
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                    Text(
-                                      address.city,
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      address.phone,
-                                      style: theme.textTheme.bodySmall,
-                                    ),
-
-                                    const Divider(height: 24),
-
-                                    // Action Buttons (Edit & Delete)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        TextButton.icon(
-                                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
-                                          label: const Text('Edit', style: TextStyle(color: AppColors.primary, fontSize: 13)),
-                                          onPressed: () => _showAddressDialog(context, ref, addressToEdit: address),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        TextButton.icon(
-                                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                          label: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
-                                          onPressed: () {
-                                            ref.read(addressListProvider.notifier).deleteAddress(address.id);
-                                            if (isSelected) {
-                                              ref.read(selectedAddressProvider.notifier).state = null;
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
                         ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddressCard({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Address address,
+    required bool isSelected,
+    required bool isDark,
+    required ThemeData theme,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(selectedAddressProvider.notifier).state = address;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Active delivery set to ${address.name}.'),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(AppConstants.radiusM),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primary 
+                : (isDark ? AppColors.borderDark : AppColors.borderLight),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+          boxShadow: AppConstants.lowShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title Line Name & Select indicators
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              address.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (address.isDefault) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight.withValues(alpha: isDark ? 0.2 : 0.8),
+                                borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                              ),
+                              child: const Text(
+                                'Default',
+                                style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
+                      color: isSelected ? AppColors.primary : AppColors.textMutedLight,
+                      size: 20,
+                    ),
+                  ],
                 ),
-                
-                // Bottom Add Button
-                Padding(
-                  padding: const EdgeInsets.all(AppConstants.spaceM),
-                  child: PrimaryButton(
-                    text: 'Add New Address',
-                    onPressed: () => context.push('/add-address'),
-                  ),
+                const SizedBox(height: 8),
+
+                // Address line
+                Text(
+                  address.addressLine,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                Text(
+                  address.city,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  address.phone,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
-          ),
+
+            Column(
+              children: [
+                const Divider(height: 16),
+                // Action Buttons (Edit & Delete)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                      label: const Text('Edit', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                      onPressed: () => _showAddressDialog(context, ref, addressToEdit: address),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                      label: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                      onPressed: () {
+                        ref.read(addressListProvider.notifier).deleteAddress(address.id);
+                        if (isSelected) {
+                          ref.read(selectedAddressProvider.notifier).state = null;
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
