@@ -101,7 +101,13 @@ final GoRouter appRouter = GoRouter(
       path: '/search',
       name: RouteNames.search,
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const SearchPage(),
+      builder: (context, state) {
+        final extra = state.extra;
+        final initialQuery = extra is Map
+            ? extra['query'] as String?
+            : (extra is String ? extra : null);
+        return SearchPage(initialQuery: initialQuery);
+      },
     ),
     GoRoute(
       path: '/notifications',

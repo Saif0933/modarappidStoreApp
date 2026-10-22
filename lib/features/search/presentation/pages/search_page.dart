@@ -14,7 +14,8 @@ final searchHistoryProvider = StateProvider<List<String>>((ref) {
 });
 
 class SearchPage extends ConsumerStatefulWidget {
-  const SearchPage({super.key});
+  final String? initialQuery;
+  const SearchPage({super.key, this.initialQuery});
 
   @override
   ConsumerState<SearchPage> createState() => _SearchPageState();
@@ -25,13 +26,24 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   String _query = '';
 
   final List<String> _popularSearches = [
+    'Sarees',
+    'Kurtas & Sets',
+    'Girls Dresses',
+    'Boys T-Shirts',
     'Leather Jacket',
     'Running Shoes',
-    'Hoodies',
     'Summer Dress',
-    'Sunglasses',
     'Denim Jeans',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+      _query = widget.initialQuery!.trim();
+      _searchController.text = _query;
+    }
+  }
 
   @override
   void dispose() {

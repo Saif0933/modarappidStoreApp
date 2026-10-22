@@ -175,8 +175,16 @@ class MainLayout extends StatelessWidget {
             label: 'Wishlist',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
+            icon: Badge(
+              label: Text('15', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              backgroundColor: Color(0xFFEF4444),
+              child: Icon(Icons.shopping_cart_outlined),
+            ),
+            selectedIcon: Badge(
+              label: Text('15', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              backgroundColor: Color(0xFFEF4444),
+              child: Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
+            ),
             label: 'Cart',
           ),
           NavigationDestination(

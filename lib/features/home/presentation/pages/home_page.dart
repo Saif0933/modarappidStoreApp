@@ -8,6 +8,7 @@ import '../../../../core/widgets/banner_slider.dart';
 import '../../../../core/widgets/category_card.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
 import '../../../../core/widgets/discount_offers_banner.dart';
+import '../../../../core/widgets/feed_product_card.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../../../core/widgets/suggested_product_card.dart';
 import '../../../../core/utils/responsive.dart';
@@ -60,9 +61,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // Filtered products
     final suggestedProducts = products.take(6).toList();
-    final popularProducts = products.where((p) => p.isPopular).toList();
-    final recommendedProducts = products.where((p) => p.isRecommended).toList();
-    final trendingProducts = products.where((p) => p.isTrending).toList();
+    final feedProducts = products.where((p) => p.id.startsWith('feed_')).toList();
     final recentlyViewed = products.sublist(0, 3); // Mock recently viewed
 
     // Mock Banner URLs (Fashion)
@@ -281,31 +280,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                     wishlist: wishlist,
                   ),
 
-                  // Popular Products (Horizontal Slider)
-                  _buildProductSection(
+                  // 2-Column Product Feed matching screenshot (Jammy & Kammo, VELLOSTA, aadi, Apple Macbook Neo)
+                  _buildFeedGridSection(
                     context: context,
-                    ref: ref,
-                    title: 'Popular Products',
-                    productList: popularProducts,
-                    wishlist: wishlist,
-                  ),
-
-                  // Recommended Products (Horizontal Slider)
-                  _buildProductSection(
-                    context: context,
-                    ref: ref,
-                    title: 'Recommended For You',
-                    productList: recommendedProducts,
-                    wishlist: wishlist,
-                  ),
-
-                  // Trending Products (Horizontal Slider)
-                  _buildProductSection(
-                    context: context,
-                    ref: ref,
-                    title: 'Trending Right Now',
-                    productList: trendingProducts,
-                    wishlist: wishlist,
+                    productList: feedProducts.isNotEmpty
+                        ? feedProducts
+                        : products.take(6).toList(),
                   ),
 
                   // Recently Viewed (Horizontal Slider)
@@ -535,6 +515,86 @@ class _HomePageState extends ConsumerState<HomePage> {
                     'imageUrl': product.imageUrl,
                     'price': product.price,
                     'originalPrice': product.originalPrice,
+                    'rating': product.rating,
+                    'reviewsCount': product.reviewsCount,
+                    'weight': product.weight,
+                    'description': product.description,
+                    'category': product.category,
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppConstants.spaceL),
+      ],
+    );
+  }
+
+  Widget _buildFeedGridSection({
+    required BuildContext context,
+    required List<Product> productList,
+  }) {
+    if (productList.isEmpty) return const SizedBox.shrink();
+
+    final width = MediaQuery.sizeOf(context).width;
+    final int cols;
+    final double childAspectRatio;
+
+    if (width < 600) {
+      // Phone: 2 columns matching screenshot
+      cols = 2;
+      childAspectRatio = 0.58;
+    } else if (width < 900) {
+      // Tablet Portrait: 3 columns
+      cols = 3;
+      childAspectRatio = 0.65;
+    } else {
+      // Tablet Landscape / Desktop: 4 columns
+      cols = 4;
+      childAspectRatio = 0.70;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spaceM),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: productList.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              childAspectRatio: childAspectRatio,
+              crossAxisSpacing: width < 600 ? 10 : 16,
+              mainAxisSpacing: width < 600 ? 14 : 20,
+            ),
+            itemBuilder: (context, index) {
+              final product = productList[index];
+              return FeedProductCard(
+                id: product.id,
+                brand: product.brand,
+                title: product.title,
+                imageUrl: product.imageUrl,
+                price: product.price,
+                originalPrice: product.originalPrice,
+                bankOfferPrice: product.bankOfferPrice,
+                rating: product.rating,
+                reviewsCount: product.reviewsCount,
+                badgeText: product.badgeText,
+                showRatingPill: product.id == 'feed_p4' || product.bankOfferPrice != null,
+                hasGreyBackground: product.id == 'feed_p2' || product.id == 'feed_p4',
+                onTap: () => context.push(
+                  '/product-details',
+                  extra: {
+                    'id': product.id,
+                    'title': product.title,
+                    'brand': product.brand,
+                    'imageUrl': product.imageUrl,
+                    'price': product.price,
+                    'originalPrice': product.originalPrice,
+                    'bankOfferPrice': product.bankOfferPrice,
                     'rating': product.rating,
                     'reviewsCount': product.reviewsCount,
                     'weight': product.weight,
