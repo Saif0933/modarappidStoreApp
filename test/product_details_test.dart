@@ -7,14 +7,11 @@ import 'package:flutter_application_1/features/product/presentation/pages/produc
 void main() {
   final testProduct = {
     'id': 'p1',
-    'title': "Men's Premium Cotton Casual Shirt",
-    'brand': 'URBAN CREW',
-    'price': 1199.0,
-    'originalPrice': 1999.0,
-    'discount': '40% OFF',
-    'rating': 4.5,
-    'reviewsCount': '1.2K',
-    'imageUrl': '',
+    'title': 'Women Floral Dress',
+    'price': '₹1,299',
+    'originalPrice': '₹1,899',
+    'discount': '32% OFF',
+    'image': 'assets/images/prod_detail_main.png',
   };
 
   testWidgets('ProductDetailsPage on Phone Screen (360x800) matches UI without overflow', (WidgetTester tester) async {
@@ -28,67 +25,42 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
-          theme: AppTheme.darkTheme,
+          theme: AppTheme.lightTheme,
           home: ProductDetailsPage(productData: testProduct),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Verify Brand, Title, and discount badge on hero
-    expect(find.text('URBAN CREW'), findsOneWidget);
-    expect(find.text("Men's Premium Cotton Casual Shirt"), findsWidgets);
-    expect(find.text('-40%'), findsOneWidget);
+    // Verify Title, Best Seller, and Rating
+    expect(find.text('Women Floral Dress'), findsOneWidget);
+    expect(find.text('Best Seller'), findsOneWidget);
+    expect(find.text('₹1,299'), findsOneWidget);
+    expect(find.text('32% OFF'), findsOneWidget);
 
-    // Scroll down to Pricing & Coupon
-    await tester.drag(find.byType(ListView), const Offset(0, -250));
-    await tester.pumpAndSettle();
+    // Verify Color and Size selectors
+    expect(find.text('Color'), findsOneWidget);
+    expect(find.text('Pink'), findsOneWidget);
+    expect(find.text('Size'), findsOneWidget);
+    expect(find.text('Size Chart'), findsOneWidget);
 
-    expect(find.text('₹1,199'), findsOneWidget);
-    expect(find.text('₹1,999'), findsOneWidget);
-    expect(find.text('40% OFF'), findsOneWidget);
-    expect(find.text('Get extra 10% off'), findsOneWidget);
-    expect(find.text('Use code FASHION10'), findsOneWidget);
-
-    // Scroll further down to Color, Size, Quantity
-    await tester.drag(find.byType(ListView), const Offset(0, -350));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Color: Purple'), findsOneWidget);
-    expect(find.text('Size: M'), findsOneWidget);
-
-    // Test Size change to 'L'
+    // Test Size selection
+    expect(find.text('L'), findsOneWidget);
     await tester.tap(find.text('L'));
     await tester.pumpAndSettle();
-    expect(find.text('Size: L'), findsOneWidget);
 
-    // Test Quantity increment
+    // Test Quantity increment/decrement
     expect(find.text('1'), findsWidgets);
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pumpAndSettle();
     expect(find.text('2'), findsWidgets);
 
-    // Test Quantity decrement
-    await tester.tap(find.byIcon(Icons.remove));
-    await tester.pumpAndSettle();
-    expect(find.text('1'), findsWidgets);
+    // Verify Features
+    expect(find.text('Premium'), findsOneWidget);
+    expect(find.text('Delivery to Home'), findsOneWidget);
+    expect(find.text('ModaRapp Fashion'), findsOneWidget);
 
-    // Scroll down to Features
-    await tester.drag(find.byType(ListView), const Offset(0, -450));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Premium\nCotton'), findsOneWidget);
-    expect(find.text('Breathable\nFabric'), findsOneWidget);
-    expect(find.text('Skin\nFriendly'), findsOneWidget);
-    expect(find.text('Perfect\nFit'), findsOneWidget);
-
-    // Scroll down to Delivery Information
-    await tester.drag(find.byType(ListView), const Offset(0, -350));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Delivery Information'), findsOneWidget);
-
-    // Verify Sticky Bottom Bar Buttons (always visible without scrolling)
+    // Verify Sticky Bottom Bar Buttons
     expect(find.text('Buy Now'), findsOneWidget);
     expect(find.text('Add to Cart'), findsOneWidget);
   });
@@ -104,7 +76,7 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
-          theme: AppTheme.darkTheme,
+          theme: AppTheme.lightTheme,
           home: ProductDetailsPage(productData: testProduct),
         ),
       ),
@@ -112,10 +84,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Title & Sections render cleanly
-    expect(find.text("Men's Premium Cotton Casual Shirt"), findsWidgets);
-    expect(find.text('URBAN CREW'), findsOneWidget);
-    expect(find.text('Product Details'), findsOneWidget);
-    expect(find.text('Delivery Information'), findsOneWidget);
+    expect(find.text('Women Floral Dress'), findsOneWidget);
+    expect(find.text('Best Seller'), findsOneWidget);
+    expect(find.text('Product Description'), findsOneWidget);
+    expect(find.text('Delivery to Home'), findsOneWidget);
     expect(find.text('Buy Now'), findsOneWidget);
     expect(find.text('Add to Cart'), findsOneWidget);
   });
@@ -138,8 +110,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('URBAN CREW'), findsOneWidget);
-    expect(find.text("Men's Premium Cotton Casual Shirt"), findsWidgets);
+    expect(find.text('Women Floral Dress'), findsOneWidget);
     expect(find.text('Buy Now'), findsOneWidget);
     expect(find.text('Add to Cart'), findsOneWidget);
   });

@@ -79,6 +79,11 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const CategoriesPage(),
         ),
         GoRoute(
+          path: '/orders',
+          name: 'orders',
+          builder: (context, state) => const OrderHistoryPage(),
+        ),
+        GoRoute(
           path: '/wishlist',
           name: RouteNames.wishlist,
           builder: (context, state) => const WishlistPage(),

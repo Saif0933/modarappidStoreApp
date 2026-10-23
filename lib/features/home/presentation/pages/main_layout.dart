@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/responsive.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -15,8 +13,10 @@ class MainLayout extends StatelessWidget {
     final String location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/categories')) return 1;
-    if (location.startsWith('/wishlist')) return 2;
-    if (location.startsWith('/cart')) return 3;
+    if (location.startsWith('/orders') || location.startsWith('/order-history')) {
+      return 2;
+    }
+    if (location.startsWith('/wishlist')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
   }
@@ -30,10 +30,10 @@ class MainLayout extends StatelessWidget {
         context.go('/categories');
         break;
       case 2:
-        context.go('/wishlist');
+        context.go('/orders');
         break;
       case 3:
-        context.go('/cart');
+        context.go('/wishlist');
         break;
       case 4:
         context.go('/profile');
@@ -44,157 +44,120 @@ class MainLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final isTabletOrDesktop = context.isTabletOrDesktop;
 
-    if (isTabletOrDesktop) {
-      // Tablet & Desktop layout: Side Navigation Rail + Main Content
-      final isExpandedRail = context.screenWidth >= 900;
-      return Scaffold(
-        body: Row(
-          children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (index) => _onItemTapped(index, context),
-              extended: isExpandedRail,
-              backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-              indicatorColor: isDark
-                  ? AppColors.primary.withValues(alpha: 0.25)
-                  : AppColors.primaryLight,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.local_mall_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    if (isExpandedRail) ...[
-                      const SizedBox(width: 12),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'MODAR',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          Text(
-                            'APPID',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: Colors.amber,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: child,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.black.withValues(alpha: 0.06),
+              width: 1.0,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  index: 0,
+                  selectedIndex: selectedIndex,
+                  label: 'Home',
+                  activeIcon: Icons.home_rounded,
+                  inactiveIcon: Icons.home_outlined,
+                  onTap: () => _onItemTapped(0, context),
                 ),
-              ),
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-                  label: Text('Home'),
+                _buildNavItem(
+                  index: 1,
+                  selectedIndex: selectedIndex,
+                  label: 'Categories',
+                  activeIcon: Icons.grid_view_rounded,
+                  inactiveIcon: Icons.grid_view_outlined,
+                  onTap: () => _onItemTapped(1, context),
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view_rounded, color: AppColors.primary),
-                  label: Text('Categories'),
+                _buildNavItem(
+                  index: 2,
+                  selectedIndex: selectedIndex,
+                  label: 'Orders',
+                  activeIcon: Icons.shopping_bag_rounded,
+                  inactiveIcon: Icons.shopping_bag_outlined,
+                  onTap: () => _onItemTapped(2, context),
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite_border_rounded),
-                  selectedIcon: Icon(Icons.favorite_rounded, color: AppColors.primary),
-                  label: Text('Wishlist'),
+                _buildNavItem(
+                  index: 3,
+                  selectedIndex: selectedIndex,
+                  label: 'Wishlist',
+                  activeIcon: Icons.favorite_rounded,
+                  inactiveIcon: Icons.favorite_border_rounded,
+                  onTap: () => _onItemTapped(3, context),
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.shopping_cart_outlined),
-                  selectedIcon: Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
-                  label: Text('Cart'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.person_outline_rounded),
-                  selectedIcon: Icon(Icons.person_rounded, color: AppColors.primary),
-                  label: Text('Profile'),
+                _buildNavItem(
+                  index: 4,
+                  selectedIndex: selectedIndex,
+                  label: 'Profile',
+                  activeIcon: Icons.person_rounded,
+                  inactiveIcon: Icons.person_outline_rounded,
+                  onTap: () => _onItemTapped(4, context),
                 ),
               ],
             ),
-            VerticalDivider(
-              width: 1,
-              thickness: 1,
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required int selectedIndex,
+    required String label,
+    required IconData activeIcon,
+    required IconData inactiveIcon,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = index == selectedIndex;
+    const activeColor = Color(0xFFE61858);
+    const inactiveColor = Color(0xFF71717A);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : inactiveIcon,
+              color: isSelected ? activeColor : inactiveColor,
+              size: 24,
             ),
-            Expanded(child: child),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? activeColor : inactiveColor,
+                letterSpacing: 0.1,
+              ),
+            ),
           ],
         ),
-      );
-    }
-
-    // Phone layout: Bottom Navigation Bar + Main Content
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) => _onItemTapped(index, context),
-        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        indicatorColor: isDark
-            ? AppColors.primary.withValues(alpha: 0.25)
-            : AppColors.primaryLight,
-        elevation: 8,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view_rounded, color: AppColors.primary),
-            label: 'Categories',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.favorite_border_rounded),
-            selectedIcon: Icon(Icons.favorite_rounded, color: AppColors.primary),
-            label: 'Wishlist',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              label: Text('15', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              backgroundColor: Color(0xFFEF4444),
-              child: Icon(Icons.shopping_cart_outlined),
-            ),
-            selectedIcon: Badge(
-              label: Text('15', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              backgroundColor: Color(0xFFEF4444),
-              child: Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
-            ),
-            label: 'Cart',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded, color: AppColors.primary),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }
 }
-
