@@ -571,10 +571,10 @@ final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
 final selectedAddressProvider = StateProvider<Address?>((ref) {
   return Address(
     id: 'a1',
-    name: 'Saif Al-Islam',
-    addressLine: '128 High Street, Flat 4B',
-    city: 'New York, NY 10001',
-    phone: '+1 234-567-8910',
+    name: 'Home',
+    addressLine: 'Indira Nagar, House No. 123,',
+    city: 'Lucknow, Uttar Pradesh - 226016',
+    phone: '+91 98765 43210',
     isDefault: true,
   );
 });
@@ -584,18 +584,18 @@ class AddressListNotifier extends StateNotifier<List<Address>> {
   AddressListNotifier() : super([
     Address(
       id: 'a1',
-      name: 'Saif Al-Islam',
-      addressLine: '128 High Street, Flat 4B',
-      city: 'New York, NY 10001',
-      phone: '+1 234-567-8910',
+      name: 'Home',
+      addressLine: 'Indira Nagar, House No. 123,',
+      city: 'Lucknow, Uttar Pradesh - 226016',
+      phone: '+91 98765 43210',
       isDefault: true,
     ),
     Address(
       id: 'a2',
-      name: 'John Doe Office',
-      addressLine: 'Penthouse Floor, Tech Hub Tower',
-      city: 'Brooklyn, NY 11201',
-      phone: '+1 987-654-3210',
+      name: 'Office',
+      addressLine: 'Hazratganj, Commercial Tower, 4th Floor',
+      city: 'Lucknow, Uttar Pradesh - 226001',
+      phone: '+91 98765 43210',
       isDefault: false,
     ),
   ]);
