@@ -15,6 +15,7 @@ class RouteNames {
   static const String search = 'search';
   static const String notifications = 'notifications';
   static const String productDetails = 'product-details';
+  static const String productCategories = 'product-categories';
   static const String checkout = 'checkout';
   static const String orderSuccess = 'order-success';
   static const String orderHistory = 'order-history';

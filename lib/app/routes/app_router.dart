@@ -10,6 +10,7 @@ import '../../features/cart/presentation/pages/cart_page.dart';
 import '../../features/cart/presentation/pages/checkout_page.dart';
 import '../../features/cart/presentation/pages/order_success_page.dart';
 import '../../features/category/presentation/pages/category_page.dart';
+import '../../features/category/presentation/pages/product_categories_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_layout.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
@@ -128,6 +129,16 @@ final GoRouter appRouter = GoRouter(
         // Safe cast extra
         final productMap = state.extra as Map<String, dynamic>? ?? {};
         return ProductDetailsPage(productData: productMap);
+      },
+    ),
+    GoRoute(
+      path: '/product-categories',
+      name: RouteNames.productCategories,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final categoryName = extra['category'] as String? ?? "Men's Fashion";
+        return ProductCategoriesPage(categoryName: categoryName);
       },
     ),
     GoRoute(

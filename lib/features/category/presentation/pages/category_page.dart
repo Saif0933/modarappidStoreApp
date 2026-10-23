@@ -217,7 +217,9 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                             width: cardWidth,
                             child: InkWell(
                               onTap: () {
-                                context.push('/search', extra: cat['title']);
+                                context.push('/product-categories', extra: {
+                                  'category': "${cat['title']}'s Fashion",
+                                });
                               },
                               borderRadius: BorderRadius.circular(16),
                               child: ClipRRect(
