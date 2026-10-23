@@ -43,19 +43,27 @@ class Product {
 class CartItem {
   final Product product;
   final int quantity;
+  final String? selectedSize;
+  final String? selectedColor;
 
   const CartItem({
     required this.product,
     required this.quantity,
+    this.selectedSize,
+    this.selectedColor,
   });
 
   CartItem copyWith({
     Product? product,
     int? quantity,
+    String? selectedSize,
+    String? selectedColor,
   }) {
     return CartItem(
       product: product ?? this.product,
       quantity: quantity ?? this.quantity,
+      selectedSize: selectedSize ?? this.selectedSize,
+      selectedColor: selectedColor ?? this.selectedColor,
     );
   }
 }
@@ -428,41 +436,63 @@ final wishlistProvider = StateNotifierProvider<WishlistNotifier, Set<String>>((r
 class CartNotifier extends StateNotifier<List<CartItem>> {
   CartNotifier()
       : super([
-          CartItem(
+          const CartItem(
             product: Product(
-              id: 'p1',
-              title: 'Premium Tailored Wool Overcoat',
-              imageUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500',
-              price: 189.99,
-              originalPrice: 229.99,
+              id: 'c1',
+              brand: 'JCOSTA',
+              title: 'Men Solid Casual Black Shirt',
+              imageUrl: 'assets/images/cart_item_black_shirt.png',
+              price: 699.0,
+              originalPrice: 999.0,
               rating: 4.8,
-              reviewsCount: 124,
-              weight: 'L',
-              description: 'Exquisitely crafted from a premium Italian wool blend.',
-              category: 'Jackets',
-              isPopular: true,
+              reviewsCount: 320,
+              weight: 'M',
+              description: 'Men Solid Casual Black Shirt with breathable cotton fabric.',
+              category: 'Shirts',
             ),
             quantity: 1,
+            selectedSize: 'M',
+            selectedColor: 'Black',
           ),
-          CartItem(
+          const CartItem(
             product: Product(
-              id: 'p3',
-              title: 'Retro Streetwear Running Sneakers',
-              imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
-              price: 89.99,
-              rating: 4.9,
-              reviewsCount: 312,
-              weight: 'US 10',
-              description: 'Features lightweight responsive cushioning and breathable mesh panels.',
-              category: 'Footwear',
-              isRecommended: true,
-              isTrending: true,
+              id: 'c2',
+              brand: "Levi's",
+              title: 'Men Slim Fit Jeans',
+              imageUrl: 'assets/images/cart_item_levis_jeans.png',
+              price: 1499.0,
+              originalPrice: 2299.0,
+              rating: 4.7,
+              reviewsCount: 450,
+              weight: '32',
+              description: 'Classic durable slim fit denim jeans for men.',
+              category: 'Jeans',
             ),
             quantity: 1,
+            selectedSize: '32',
+            selectedColor: 'Blue',
+          ),
+          const CartItem(
+            product: Product(
+              id: 'c3',
+              brand: 'Roadster',
+              title: 'Men Regular Fit T-Shirt',
+              imageUrl: 'assets/images/cart_item_roadster_tshirt.png',
+              price: 499.0,
+              originalPrice: 799.0,
+              rating: 4.6,
+              reviewsCount: 280,
+              weight: 'L',
+              description: 'Pure cotton round neck regular fit casual t-shirt.',
+              category: 'T-Shirts',
+            ),
+            quantity: 1,
+            selectedSize: 'L',
+            selectedColor: 'White',
           ),
         ]);
 
-  void addToCart(Product product, {int qty = 1}) {
+  void addToCart(Product product, {int qty = 1, String? size, String? color}) {
     final existingIndex = state.indexWhere((item) => item.product.id == product.id);
     if (existingIndex >= 0) {
       final item = state[existingIndex];
@@ -472,14 +502,44 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
         ...state.sublist(existingIndex + 1),
       ];
     } else {
-      state = [...state, CartItem(product: product, quantity: qty)];
+      state = [
+        ...state,
+        CartItem(
+          product: product,
+          quantity: qty,
+          selectedSize: size ?? product.weight,
+          selectedColor: color ?? 'Black',
+        ),
+      ];
     }
   }
 
   void updateQuantity(String productId, int quantity) {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
     state = state.map((item) {
       if (item.product.id == productId) {
         return item.copyWith(quantity: quantity);
+      }
+      return item;
+    }).toList();
+  }
+
+  void updateSize(String productId, String size) {
+    state = state.map((item) {
+      if (item.product.id == productId) {
+        return item.copyWith(selectedSize: size);
+      }
+      return item;
+    }).toList();
+  }
+
+  void updateColor(String productId, String color) {
+    state = state.map((item) {
+      if (item.product.id == productId) {
+        return item.copyWith(selectedColor: color);
       }
       return item;
     }).toList();
@@ -493,10 +553,14 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     state = [];
   }
 
-  double get subtotal => state.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
-  double get tax => subtotal * 0.05; // 5% VAT
-  double get shipping => subtotal > 50 ? 0.0 : 9.99; // Free shipping above $50
-  double get total => subtotal + tax + shipping;
+  double get totalMrp => state.fold(0.0, (sum, item) => sum + ((item.product.originalPrice ?? item.product.price) * item.quantity));
+  double get subtotal => state.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
+  double get itemDiscount => totalMrp - subtotal;
+  double get deliveryFee => state.isEmpty ? 0.0 : 30.0;
+  double get shipping => deliveryFee;
+  double get tax => 0.0;
+  double get total => subtotal + deliveryFee;
+  double get savings => itemDiscount;
 }
 
 final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {

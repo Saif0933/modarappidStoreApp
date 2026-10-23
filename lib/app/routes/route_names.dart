@@ -20,6 +20,7 @@ class RouteNames {
   static const String orderSuccess = 'order-success';
   static const String orderHistory = 'order-history';
   static const String orderTracking = 'order-tracking';
+  static const String orderDetails = 'order-details';
   static const String addressList = 'address-list';
   static const String addAddress = 'add-address';
   static const String editAddress = 'edit-address';

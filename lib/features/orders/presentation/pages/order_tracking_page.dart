@@ -1,669 +1,1388 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../../../../app/constants/app_constants.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/custom_app_bar.dart';
-import '../../../../shared/providers/products_provider.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../address/data/services/ola_maps_service.dart';
 
 class OrderTrackingPage extends ConsumerStatefulWidget {
-  const OrderTrackingPage({super.key});
+  final String orderId;
+
+  const OrderTrackingPage({
+    super.key,
+    this.orderId = 'MRP12345678',
+  });
 
   @override
   ConsumerState<OrderTrackingPage> createState() => _OrderTrackingPageState();
 }
 
-class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage> {
-  GoogleMapController? _mapController;
-  int _stepIndex = 0;
+class _OrderTrackingPageState extends ConsumerState<OrderTrackingPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
   Timer? _timer;
   bool _isLocating = false;
+  String _currentOlaAddress = 'Indira Nagar, Lucknow - 226016';
 
-  // Real coordinate path representing the route from boutique warehouse to the user's location
-  final List<LatLng> _routeCoordinates = const [
-    LatLng(28.6280, 77.3790), // Milestone 0: Warehouse, Sector 5 Noida
-    LatLng(28.6210, 77.3820), // Milestone 1: Transit Hub, Sector 62
-    LatLng(28.6180, 77.3910), // Milestone 2: Express Highway, Noida
-    LatLng(28.6150, 77.4010), // Milestone 3: Near High Street Entrance
-    LatLng(28.6130, 77.4100), // Milestone 4: Destination Point, Noida
-  ];
-
-  final List<TrackingMilestone> _milestones = [
-    TrackingMilestone(
-      name: 'Boutique Warehouse, Sector 5',
-      distance: '5.2 km',
-      timeRemaining: '25 mins',
-      statusDescription: 'Order packaged and ready at the dispatch base.',
-    ),
-    TrackingMilestone(
-      name: 'Transit Hub, Crossing Loop',
-      distance: '3.8 km',
-      timeRemaining: '18 mins',
-      styleName: 'Passing Sector 62 Crossing',
-      statusDescription: 'Dispatched from hub. Heading towards the main road.',
-    ),
-    TrackingMilestone(
-      name: 'Passing Express Flyover Gate',
-      distance: '2.4 km',
-      timeRemaining: '10 mins',
-      styleName: 'Expressway Near Sector 63',
-      statusDescription: 'Rider is driving smoothly on the flyover belt.',
-    ),
-    TrackingMilestone(
-      name: 'Near High Street Main Entrance',
-      distance: '0.8 km',
-      timeRemaining: '4 mins',
-      styleName: 'Entering High Street Sector',
-      statusDescription: 'Rider has entered the neighborhood and is nearby.',
-    ),
-    TrackingMilestone(
-      name: 'Arrived at Destination Address', // dynamically overridden using actual selectedAddress
-      distance: '0.0 km',
-      timeRemaining: 'Arrived',
-      styleName: 'Arrived at Your Doorstep',
-      statusDescription: 'Delivery successfully completed and verified.',
-    ),
-  ];
+  // Rider progress along the route (0.0 = Store, 1.0 = Destination)
+  double _riderProgress = 0.58;
 
   @override
   void initState() {
     super.initState();
-    // Simulate real-time tracking position changes and move camera every 8 seconds
-    _timer = Timer.periodic(const Duration(seconds: 8), (timer) {
+
+    // Pulse animation for active delivery vehicle on the Ola map
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    // Simulated real-time rider progression
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (mounted) {
         setState(() {
-          _stepIndex = (_stepIndex + 1) % _routeCoordinates.length;
+          _riderProgress += 0.04;
+          if (_riderProgress > 0.85) {
+            _riderProgress = 0.58;
+          }
         });
-        _animateCameraToRider();
       }
     });
   }
 
   @override
   void dispose() {
+    _animController.dispose();
     _timer?.cancel();
-    _mapController?.dispose();
     super.dispose();
   }
 
-  void _animateCameraToRider() {
-    if (_mapController != null && _stepIndex < _routeCoordinates.length) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(_routeCoordinates[_stepIndex]),
+  Future<void> _fetchOlaLocation() async {
+    setState(() => _isLocating = true);
+
+    try {
+      // Fetch user's live reverse geocoded address via Ola Maps Platform API
+      final result = await OlaMapsService.reverseGeocode(
+        latitude: 26.8833,
+        longitude: 80.9982,
       );
-    }
-  }
 
-  void _zoomIn() {
-    _mapController?.animateCamera(CameraUpdate.zoomIn());
-  }
-
-  void _zoomOut() {
-    _mapController?.animateCamera(CameraUpdate.zoomOut());
-  }
-
-  void _fetchCurrentLocation() {
-    setState(() {
-      _isLocating = true;
-    });
-
-    // Simulate GPS positioning retrieval delay
-    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() {
           _isLocating = false;
-          _stepIndex = 3; // Snap map rider close to the user
+          if (result.formattedAddress.isNotEmpty) {
+            _currentOlaAddress = result.formattedAddress;
+          }
         });
-        _animateCameraToRider();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.gps_fixed_rounded, color: Colors.white, size: 16),
+                const Icon(Icons.location_on_rounded,
+                    color: Colors.white, size: 18),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'GPS Localized! Centered Google Maps on Noida Sector 62.',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    'Ola Maps: Location refreshed to $_currentOlaAddress',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
+            backgroundColor: const Color(0xFFE61858),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLocating = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final isWide = context.isTablet || context.isDesktop;
-
-    // Fetch user's actual selected address from Riverpod
-    final selectedAddress = ref.watch(selectedAddressProvider);
-    final destinationLabel = selectedAddress != null 
-        ? '${selectedAddress.addressLine}, ${selectedAddress.city}' 
-        : '128 High Street, Noida';
-
-    // Override the final milestone name dynamically
-    _milestones.last = TrackingMilestone(
-      name: 'Arrived at $destinationLabel',
-      distance: '0.0 km',
-      timeRemaining: 'Arrived',
-      styleName: 'Arrived at Your Doorstep',
-      statusDescription: 'Delivery successfully completed and verified.',
-    );
-
-    final currentMilestone = _milestones[_stepIndex];
-
-    // Dynamically adjust step details according to the current GPS progress point
-    final List<TrackingStep> steps = [
-      TrackingStep(
-        title: 'Order Confirmed',
-        description: 'Your fashion order was received.',
-        time: '10:30 AM',
-        isCompleted: true,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
-      TrackingStep(
-        title: 'Preparing Order',
-        description: 'Verify boutique packaging and tags.',
-        time: '11:15 AM',
-        isCompleted: _stepIndex >= 1,
-        isCurrent: _stepIndex == 0,
-      ),
-      TrackingStep(
-        title: 'Out for Delivery',
-        description: _stepIndex == 4 
-            ? 'Delivered by Courier Alex Johnson.' 
-            : 'Rider Alex is on the way with your clothing.',
-        time: '12:00 PM',
-        isCompleted: _stepIndex >= 4,
-        isCurrent: _stepIndex >= 1 && _stepIndex < 4,
-      ),
-      TrackingStep(
-        title: 'Delivered',
-        description: 'Secure delivery handoff verified.',
-        time: _stepIndex == 4 ? '12:25 PM' : '--:--',
-        isCompleted: _stepIndex == 4,
-        isCurrent: false,
-      ),
-    ];
-
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
-      appBar: const CustomAppBar(title: 'Track Order'),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: ResponsiveBreakpoints.maxContentWidth),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(AppConstants.spaceM),
-              child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left Column: Map + GPS info
-                        Expanded(
-                          flex: 6,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildMapContainer(isDark, theme, currentMilestone, destinationLabel, height: 380),
-                              const SizedBox(height: 16),
-                              _buildGpsCard(isDark, theme, currentMilestone),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        // Right Column: Courier + Delivery Timeline
-                        Expanded(
-                          flex: 5,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildCourierCard(isDark, theme),
-                              const SizedBox(height: 24),
-                              _buildTimelineCard(isDark, theme, steps),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildMapContainer(isDark, theme, currentMilestone, destinationLabel, height: 250),
-                        const SizedBox(height: 16),
-                        _buildGpsCard(isDark, theme, currentMilestone),
-                        const SizedBox(height: 16),
-                        _buildCourierCard(isDark, theme),
-                        const SizedBox(height: 24),
-                        _buildTimelineCard(isDark, theme, steps),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMapContainer(bool isDark, ThemeData theme, TrackingMilestone currentMilestone, String destinationLabel, {required double height}) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(AppConstants.radiusXL),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-        boxShadow: AppConstants.mediumShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppConstants.radiusXL),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _routeCoordinates[_stepIndex],
-                zoom: 13.5,
-              ),
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
-              markers: {
-                Marker(
-                  markerId: const MarkerId('rider'),
-                  position: _routeCoordinates[_stepIndex],
-                  infoWindow: InfoWindow(
-                    title: 'Alex Johnson (Rider)',
-                    snippet: 'Distance remaining: ${currentMilestone.distance}',
-                  ),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                ),
-                Marker(
-                  markerId: const MarkerId('destination'),
-                  position: _routeCoordinates.last,
-                  infoWindow: InfoWindow(
-                    title: 'Delivery Destination',
-                    snippet: destinationLabel,
-                  ),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                ),
-              },
-              polylines: {
-                Polyline(
-                  polylineId: const PolylineId('planned_route'),
-                  points: _routeCoordinates,
-                  color: Colors.blue.withValues(alpha: 0.5),
-                  width: 6,
-                ),
-                Polyline(
-                  polylineId: const PolylineId('traveled_route'),
-                  points: _routeCoordinates.sublist(0, _stepIndex + 1),
-                  color: AppColors.primary,
-                  width: 6,
-                ),
-              },
-              zoomControlsEnabled: false,
-              myLocationButtonEnabled: false,
-              mapType: MapType.normal,
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Column(
-                children: [
-                  _buildMapControl(Icons.add, _zoomIn, isDark),
-                  const SizedBox(height: 8),
-                  _buildMapControl(Icons.remove, _zoomOut, isDark),
-                ],
-              ),
-            ),
-            Positioned(
-              bottom: 12,
-              right: 12,
-              child: GestureDetector(
-                onTap: _isLocating ? null : _fetchCurrentLocation,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
-                    shape: BoxShape.circle,
-                    boxShadow: AppConstants.lowShadow,
-                  ),
-                  child: _isLocating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                          ),
-                        )
-                      : const Icon(Icons.my_location_rounded, size: 18, color: AppColors.primary),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 12,
-              left: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.bgDark.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(AppConstants.radiusS),
-                  boxShadow: AppConstants.lowShadow,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.flash_on_rounded, color: AppColors.accent, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      _stepIndex == 4 ? 'Status: Arrived' : 'Time Left: ${currentMilestone.timeRemaining}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGpsCard(bool isDark, ThemeData theme, TrackingMilestone currentMilestone) {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spaceM),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-        boxShadow: AppConstants.lowShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 10),
+
+              // 1. Top App Bar (Back Arrow, ModaRapp Logo, Help)
+              _buildTopAppBar(context),
+
+              const SizedBox(height: 12),
+
+              // 2. Scrollable Body
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'CURRENT GPS LOCATION',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                        letterSpacing: 1.1,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 850),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: "Order Tracking" + "Arriving in 12 Minutes"
+                          _buildOrderHeader(),
+
+                          const SizedBox(height: 16),
+
+                          // Horizontal 5-Step Progress Tracker
+                          _buildHorizontalStepper(),
+
+                          const SizedBox(height: 18),
+
+                          // Interactive Ola Maps Tracking View
+                          _buildOlaMapView(),
+
+                          const SizedBox(height: 16),
+
+                          // Delivery Partner Card (Rohit Kumar)
+                          _buildDeliveryPartnerCard(context),
+
+                          const SizedBox(height: 18),
+
+                          // Order Items (2)
+                          _buildOrderItemsSection(context),
+
+                          const SizedBox(height: 18),
+
+                          // Tracking Details Vertical Stepper
+                          _buildVerticalTrackingDetails(),
+
+                          const SizedBox(height: 20),
+
+                          // Bottom Action Buttons
+                          _buildBottomActionButtons(context),
+
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      currentMilestone.name,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildTrackingStat('Distance Left', currentMilestone.distance, theme),
-              _buildTrackingStat('Time Left', currentMilestone.timeRemaining, theme),
-              _buildTrackingStat('GPS Status', _stepIndex == 4 ? 'Arrived' : 'In Transit', theme),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildCourierCard(bool isDark, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spaceM),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-        boxShadow: AppConstants.lowShadow,
-      ),
+  // 1. Top App Bar
+  Widget _buildTopAppBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
-            ),
-          ),
-          const SizedBox(width: 16),
+          // Back Button + Logo + Title
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  'Alex Johnson',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '4.8 (1.2k Ratings)',
-                      style: theme.textTheme.bodySmall,
+                InkWell(
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/orders');
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: Color(0xFF18181B),
+                      size: 24,
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              _buildRoundButton(Icons.call_rounded, isDark, () {}),
-              const SizedBox(width: 8),
-              _buildRoundButton(Icons.message_rounded, isDark, () {}),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineCard(bool isDark, ThemeData theme, List<TrackingStep> steps) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Delivery Status',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: steps.length,
-          itemBuilder: (context, index) {
-            final step = steps[index];
-            final isLast = index == steps.length - 1;
-            
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: step.isCompleted || step.isCurrent 
-                            ? AppColors.primary 
-                            : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                        shape: BoxShape.circle,
-                        border: step.isCurrent 
-                            ? Border.all(color: AppColors.primaryLight, width: 4)
-                            : null,
-                      ),
-                      child: step.isCompleted 
-                          ? const Icon(Icons.check, size: 12, color: Colors.white) 
-                          : null,
-                    ),
-                    if (!isLast)
-                      Container(
-                        width: 2,
-                        height: 50,
-                        color: step.isCompleted 
-                            ? AppColors.primary 
-                            : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                      ),
-                  ],
+                const SizedBox(width: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/modarapp_logo.png',
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        step.title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: step.isCurrent || step.isCompleted
-                              ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                              : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF18181B),
+                            letterSpacing: -0.3,
+                          ),
+                          children: [
+                            TextSpan(text: 'Moda'),
+                            TextSpan(
+                              text: 'Rapp',
+                              style: TextStyle(
+                                color: Color(0xFFE61858),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        step.description,
-                        style: theme.textTheme.bodySmall,
+                      const Text(
+                        'Fashion Delivered Fast',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.6,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Text(
-                  step.time,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: step.isCompleted ? AppColors.primary : null,
-                    fontWeight: step.isCompleted ? FontWeight.bold : null,
-                  ),
-                ),
               ],
-            );
-          },
-        ),
-      ],
-    );
-  }
+            ),
+          ),
 
-  Widget _buildMapControl(IconData icon, VoidCallback onTap, bool isDark) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
-          shape: BoxShape.circle,
-          boxShadow: AppConstants.lowShadow,
-        ),
-        child: Icon(icon, size: 18, color: AppColors.primary),
+          // Help Button
+          InkWell(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Support agent will connect shortly.'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: const [
+                  Icon(
+                    Icons.headset_mic_outlined,
+                    size: 18,
+                    color: Color(0xFF18181B),
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Help',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF18181B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTrackingStat(String label, String value, ThemeData theme) {
-    return Column(
+  // 2. Order Header ("Order Tracking" + "Arriving in 12 Minutes")
+  Widget _buildOrderHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+        // Title & Order ID
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Order Tracking',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF18181B),
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Order #${widget.orderId}',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFF71717A),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
+
+        // "Arriving in 12 Minutes" Pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF0F3),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: const [
+              Text(
+                'Arriving in',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF71717A),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 1),
+              Text(
+                '12 Minutes',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFE61858),
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRoundButton(IconData icon, bool isDark, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.borderDark : AppColors.primaryLight.withValues(alpha: 0.4),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 20, color: AppColors.primary),
+  // 3. Horizontal 5-Step Stepper
+  Widget _buildHorizontalStepper() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Step 1: Order Placed
+            _buildStepperItem(
+              icon: Icons.check_rounded,
+              isDone: true,
+              isActive: false,
+              title: 'Order Placed',
+              time: '10:15 AM',
+            ),
+
+            // Line 1
+            _buildStepperLine(isCompleted: true),
+
+            // Step 2: Confirmed
+            _buildStepperItem(
+              icon: Icons.check_rounded,
+              isDone: true,
+              isActive: false,
+              title: 'Confirmed',
+              time: '10:17 AM',
+            ),
+
+            // Line 2
+            _buildStepperLine(isCompleted: true),
+
+            // Step 3: Packed
+            _buildStepperItem(
+              icon: Icons.check_rounded,
+              isDone: true,
+              isActive: false,
+              title: 'Packed',
+              time: '10:25 AM',
+            ),
+
+            // Line 3
+            _buildStepperLine(isCompleted: true),
+
+            // Step 4: Out for Delivery (Active)
+            _buildStepperItem(
+              icon: Icons.local_shipping_rounded,
+              isDone: false,
+              isActive: true,
+              title: 'Out for Delivery',
+              time: '10:32 AM',
+            ),
+
+            // Line 4
+            _buildStepperLine(isCompleted: false),
+
+            // Step 5: Delivered
+            _buildStepperItem(
+              icon: Icons.home_outlined,
+              isDone: false,
+              isActive: false,
+              title: 'Delivered',
+              time: 'On the way',
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStepperItem({
+    required IconData icon,
+    required bool isDone,
+    required bool isActive,
+    required String title,
+    required String time,
+  }) {
+    Color circleColor;
+    Color iconColor;
+    Widget circleContent;
+
+    if (isDone) {
+      circleColor = const Color(0xFFE61858);
+      iconColor = Colors.white;
+      circleContent = Icon(icon, size: 14, color: iconColor);
+    } else if (isActive) {
+      circleColor = const Color(0xFFE61858);
+      iconColor = Colors.white;
+      circleContent = Icon(icon, size: 15, color: iconColor);
+    } else {
+      circleColor = const Color(0xFFF4F4F6);
+      iconColor = const Color(0xFF71717A);
+      circleContent = Icon(icon, size: 14, color: iconColor);
+    }
+
+    return Expanded(
+      flex: 3,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Circle with Halo if active
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: circleColor,
+              shape: BoxShape.circle,
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFE61858).withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
+              border: isActive
+                  ? Border.all(color: const Color(0xFFFDE8ED), width: 3)
+                  : null,
+            ),
+            child: Center(child: circleContent),
+          ),
+
+          const SizedBox(height: 6),
+
+          // Title
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+              color: isActive
+                  ? const Color(0xFF18181B)
+                  : (isDone ? const Color(0xFF18181B) : const Color(0xFF71717A)),
+              height: 1.15,
+            ),
+          ),
+
+          const SizedBox(height: 2),
+
+          // Time
+          Text(
+            time,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 8.5,
+              color: Color(0xFF71717A),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class TrackingMilestone {
-  final String name;
-  final String distance;
-  final String timeRemaining;
-  final String? styleName;
-  final String statusDescription;
-  TrackingMilestone({
-    required this.name,
-    required this.distance,
-    required this.timeRemaining,
-    this.styleName,
-    required this.statusDescription,
-  });
-}
+  Widget _buildStepperLine({required bool isCompleted}) {
+    return Expanded(
+      flex: 2,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Container(
+          height: 2.2,
+          color: isCompleted
+              ? const Color(0xFFE61858)
+              : const Color(0xFFE4E4E7),
+        ),
+      ),
+    );
+  }
 
-class TrackingStep {
-  final String title;
-  final String description;
-  final String time;
-  final bool isCompleted;
-  final bool isCurrent;
-  TrackingStep({
-    required this.title,
-    required this.description,
-    required this.time,
-    this.isCompleted = false,
-    this.isCurrent = false,
-  });
-}
+  // 4. Interactive Ola Maps Tracking View
+  Widget _buildOlaMapView() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF1F1F4),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 434 / 170,
+          child: Stack(
+            children: [
+              // High-res Ola Maps visual tile base
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/order_map_view.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
 
+              // Animated Rider Scooter position on the route
+              AnimatedBuilder(
+                animation: _animController,
+                builder: (context, child) {
+                  return Positioned(
+                    top: 88,
+                    left: 200 + (_riderProgress - 0.58) * 120,
+                    child: child!,
+                  );
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFE61858),
+                      width: 1.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE61858).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1.5,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.two_wheeler_rounded,
+                      size: 17,
+                      color: Color(0xFFE61858),
+                    ),
+                  ),
+                ),
+              ),
+
+              // "Powered by Ola Maps" subtle badge in top-left
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.map_rounded,
+                        size: 11,
+                        color: Color(0xFFE61858),
+                      ),
+                      SizedBox(width: 3),
+                      Text(
+                        'Ola Maps Platform',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF18181B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Floating Target / Locate Button (Bottom Right)
+              Positioned(
+                bottom: 10,
+                right: 10,
+                child: InkWell(
+                  onTap: _isLocating ? null : _fetchOlaLocation,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: _isLocating
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFFE61858),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.my_location_rounded,
+                              size: 17,
+                              color: Color(0xFF18181B),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 5. Delivery Partner Card (Rohit Kumar)
+  Widget _buildDeliveryPartnerCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF1F1F4),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar with Green Status Dot
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Image.asset(
+                  'assets/images/driver_rohit_kumar.png',
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                bottom: 1,
+                right: 1,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 12),
+
+          // Partner Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Rohit Kumar',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 1),
+                const Text(
+                  'Your Delivery Partner',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF71717A),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: const [
+                    Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: Color(0xFFF59E0B),
+                    ),
+                    SizedBox(width: 2),
+                    Text(
+                      '4.8',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF18181B),
+                      ),
+                    ),
+                    SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        '(320 deliveries)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Call & Chat Circular Action Buttons
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Call Button
+              _buildPartnerActionButton(
+                icon: Icons.phone_rounded,
+                label: 'Call',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Calling Rohit Kumar (+91 98765 43210)...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(width: 12),
+
+              // Chat Button
+              _buildPartnerActionButton(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'Chat',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Opening live chat with Rohit Kumar...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartnerActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF0F3),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 17,
+                color: const Color(0xFFE61858),
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF18181B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 6. Order Items (2)
+  Widget _buildOrderItemsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Row: "Order Items (2)" + "View Details >"
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Order Items (2)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF18181B),
+                ),
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                context.push('/order-history');
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'View Details',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFE61858),
+                    ),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 15,
+                    color: Color(0xFFE61858),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Item 1: Men Oversized T-Shirt
+        _buildItemRow(
+          image: 'assets/images/order_item_tshirt.png',
+          title: 'Men Oversized T-Shirt',
+          specs: 'Size: L  |  Color: Black  |  Qty: 1',
+          price: '₹699',
+        ),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Divider(height: 1, color: Color(0xFFF4F4F6)),
+        ),
+
+        // Item 2: Slim Fit Jeans
+        _buildItemRow(
+          image: 'assets/images/order_item_jeans.png',
+          title: 'Slim Fit Jeans',
+          specs: 'Size: 32  |  Color: Blue  |  Qty: 1',
+          price: '₹1,499',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemRow({
+    required String image,
+    required String title,
+    required String specs,
+    required String price,
+  }) {
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.asset(
+            image,
+            width: 48,
+            height: 48,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF18181B),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                specs,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF71717A),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          price,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF18181B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 7. Tracking Details Vertical Stepper
+  Widget _buildVerticalTrackingDetails() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFF1F1F4),
+          width: 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tracking Details',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF18181B),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Milestone 1: Order Placed
+          _buildVerticalMilestone(
+            icon: Icons.check_rounded,
+            isDone: true,
+            isActive: false,
+            isLast: false,
+            title: 'Order Placed',
+            subtitle: 'Your order has been placed successfully.',
+            time: '10:15 AM',
+          ),
+
+          // Milestone 2: Order Confirmed
+          _buildVerticalMilestone(
+            icon: Icons.check_rounded,
+            isDone: true,
+            isActive: false,
+            isLast: false,
+            title: 'Order Confirmed',
+            subtitle: 'The seller has confirmed your order.',
+            time: '10:17 AM',
+          ),
+
+          // Milestone 3: Packed
+          _buildVerticalMilestone(
+            icon: Icons.check_rounded,
+            isDone: true,
+            isActive: false,
+            isLast: false,
+            title: 'Packed',
+            subtitle: 'Your items are packed and ready for delivery.',
+            time: '10:25 AM',
+          ),
+
+          // Milestone 4: Out for Delivery (Active)
+          _buildVerticalMilestone(
+            icon: Icons.local_shipping_rounded,
+            isDone: false,
+            isActive: true,
+            isLast: false,
+            title: 'Out for Delivery',
+            subtitle: 'Your order is out for delivery.',
+            time: '10:32 AM',
+          ),
+
+          // Milestone 5: Delivered
+          _buildVerticalMilestone(
+            icon: Icons.home_outlined,
+            isDone: false,
+            isActive: false,
+            isLast: true,
+            title: 'Delivered',
+            subtitle: 'Order will be delivered soon.',
+            time: 'Expected\n10:44 AM',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerticalMilestone({
+    required IconData icon,
+    required bool isDone,
+    required bool isActive,
+    required bool isLast,
+    required String title,
+    required String subtitle,
+    required String time,
+  }) {
+    Color circleColor;
+    Color iconColor;
+    Widget circleContent;
+
+    if (isDone) {
+      circleColor = const Color(0xFFE61858);
+      iconColor = Colors.white;
+      circleContent = Icon(icon, size: 13, color: iconColor);
+    } else if (isActive) {
+      circleColor = const Color(0xFFE61858);
+      iconColor = Colors.white;
+      circleContent = Icon(icon, size: 14, color: iconColor);
+    } else {
+      circleColor = const Color(0xFFF4F4F6);
+      iconColor = const Color(0xFF71717A);
+      circleContent = Icon(icon, size: 13, color: iconColor);
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Circle + Vertical Line
+          Column(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: circleColor,
+                  shape: BoxShape.circle,
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color:
+                                const Color(0xFFE61858).withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            spreadRadius: 1.5,
+                          ),
+                        ]
+                      : null,
+                  border: isActive
+                      ? Border.all(
+                          color: const Color(0xFFFDE8ED),
+                          width: 2.5,
+                        )
+                      : null,
+                ),
+                child: Center(child: circleContent),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isDone
+                        ? const Color(0xFFE61858)
+                        : (isActive
+                            ? const Color(0xFFE61858)
+                            : const Color(0xFFE4E4E7)),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(width: 12),
+
+          // Title & Subtitle
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isActive ? FontWeight.w900 : FontWeight.w700,
+                      color: const Color(0xFF18181B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF71717A),
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Timestamp
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Text(
+              time,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: const Color(0xFF71717A),
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 8. Bottom Action Buttons (Cancel Order, Return / Exchange, Need Help?)
+  Widget _buildBottomActionButtons(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          children: [
+            // Cancel Order
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Order cancellation request initiated.'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color(0xFFE61858),
+                      width: 1.1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.close_rounded,
+                          size: 14,
+                          color: Color(0xFFE61858),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Cancel Order',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFE61858),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Return / Exchange
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Return / Exchange eligible after delivery.'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color(0xFFE61858),
+                      width: 1.1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.replay_rounded,
+                          size: 14,
+                          color: Color(0xFFE61858),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Return / Exchange',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFE61858),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Need Help?
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Opening 24x7 Customer Support...'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color(0xFFE61858),
+                      width: 1.1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.headset_mic_outlined,
+                          size: 14,
+                          color: Color(0xFFE61858),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Need Help?',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFE61858),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}

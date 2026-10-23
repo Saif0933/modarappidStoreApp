@@ -14,6 +14,7 @@ import '../../features/category/presentation/pages/product_categories_page.dart'
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_layout.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
+import '../../features/orders/presentation/pages/order_details_page.dart';
 import '../../features/orders/presentation/pages/order_history_page.dart';
 import '../../features/orders/presentation/pages/order_tracking_page.dart';
 import '../../features/product/presentation/pages/product_details_page.dart';
@@ -166,7 +167,51 @@ final GoRouter appRouter = GoRouter(
       path: '/order-tracking',
       name: RouteNames.orderTracking,
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const OrderTrackingPage(),
+      builder: (context, state) {
+        final orderId = state.extra as String? ?? 'MRP12345678';
+        return OrderTrackingPage(orderId: orderId);
+      },
+    ),
+    GoRoute(
+      path: '/order-details',
+      name: RouteNames.orderDetails,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) {
+        final statusParam = state.uri.queryParameters['status'];
+        OrderDetailStatus status = OrderDetailStatus.delivered;
+        if (statusParam != null) {
+          switch (statusParam.toLowerCase()) {
+            case 'cancelled':
+              status = OrderDetailStatus.cancelled;
+              break;
+            case 'refunded':
+              status = OrderDetailStatus.refunded;
+              break;
+            case 'returnrequested':
+            case 'return_requested':
+              status = OrderDetailStatus.returnRequested;
+              break;
+            case 'returning':
+              status = OrderDetailStatus.returning;
+              break;
+            case 'returnrefunded':
+            case 'return_refunded':
+              status = OrderDetailStatus.returnRefunded;
+              break;
+            default:
+              status = OrderDetailStatus.delivered;
+          }
+        }
+        final extraStatus = state.extra is OrderDetailStatus
+            ? state.extra as OrderDetailStatus
+            : null;
+        final orderId =
+            state.uri.queryParameters['orderId'] ?? 'OD438063137903616100';
+        return OrderDetailsPage(
+          initialStatus: extraStatus ?? status,
+          orderId: orderId,
+        );
+      },
     ),
     GoRoute(
       path: '/address-list',

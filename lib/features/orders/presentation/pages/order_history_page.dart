@@ -704,7 +704,7 @@ class _OrderHistoryPageState extends ConsumerState<OrderHistoryPage> {
             statusLabel: 'Delivered',
             statusBgColor: const Color(0xFFEDFCF2),
             statusTextColor: const Color(0xFF16A34A),
-            onTap: () => context.push('/order-tracking'),
+            onTap: () => context.push('/order-details?status=delivered'),
           ),
 
           const SizedBox(height: 12),
@@ -761,12 +761,7 @@ class _OrderHistoryPageState extends ConsumerState<OrderHistoryPage> {
                   height: 40,
                   child: OutlinedButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Starting Return/Exchange flow...'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
+                      context.push('/order-details?status=returnRequested');
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(
