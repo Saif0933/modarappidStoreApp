@@ -1119,72 +1119,106 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
 
   // 5. Delivery to Home Card
   Widget _buildDeliveryLocationCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
-      ),
-      child: Row(
-        children: [
-          // Location Pin Icon
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFF0F3),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.location_on_outlined,
-                color: Color(0xFFE61858),
-                size: 18,
+    final addresses = ref.watch(addressListProvider);
+    final selectedAddress = ref.watch(selectedAddressProvider);
+
+    final activeAddress = selectedAddress ??
+        addresses.where((a) => a.isDefault).firstOrNull ??
+        addresses.firstOrNull;
+
+    final String titleText = activeAddress != null
+        ? 'Delivery to ${activeAddress.name}'
+        : 'Delivery to Home';
+
+    final String addressSubtitle;
+    if (activeAddress != null) {
+      final cleanLine = activeAddress.addressLine
+          .replaceAll('\n', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      final lineWithoutComma = cleanLine.endsWith(',')
+          ? cleanLine.substring(0, cleanLine.length - 1).trim()
+          : cleanLine;
+      final cleanCity = activeAddress.city
+          .replaceAll('\n', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      addressSubtitle = lineWithoutComma.isNotEmpty
+          ? '$lineWithoutComma, $cleanCity'
+          : cleanCity;
+    } else {
+      addressSubtitle = 'Indira Nagar, Lucknow - 226016';
+    }
+
+    return InkWell(
+      onTap: () => context.push('/address-list'),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
+        ),
+        child: Row(
+          children: [
+            // Location Pin Icon
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFF0F3),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.location_on_outlined,
+                  color: Color(0xFFE61858),
+                  size: 18,
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
 
-          // Address Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Flexible(
-                      child: Text(
-                        'Delivery to Home',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF18181B),
+            // Address Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          titleText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF18181B),
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 2),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: Color(0xFF18181B),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 1),
-                const Text(
-                  'Indira Nagar, Lucknow - 226016',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-                ),
-              ],
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: Color(0xFF18181B),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    addressSubtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+                  ),
+                ],
+              ),
             ),
-          ),
 
           const SizedBox(width: 8),
 
@@ -1232,8 +1266,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // 6. Sold by Seller Card
   Widget _buildSellerCard() {

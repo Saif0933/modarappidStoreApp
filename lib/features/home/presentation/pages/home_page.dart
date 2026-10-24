@@ -128,51 +128,58 @@ class _HomePageState extends ConsumerState<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Logo & Brand Name
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/modarapp_logo.png',
-                  width: 38,
-                  height: 38,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
                 children: [
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF18181B),
-                        letterSpacing: -0.3,
-                      ),
-                      children: [
-                        TextSpan(text: 'Moda'),
-                        TextSpan(
-                          text: 'Rapp',
-                          style: TextStyle(color: Color(0xFFE61858)),
-                        ),
-                      ],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/images/modarapp_logo.png',
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  const Text(
-                    'Fashion Delivered Fast',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      color: Color(0xFF71717A),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.8,
-                    ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF18181B),
+                            letterSpacing: -0.3,
+                          ),
+                          children: [
+                            TextSpan(text: 'Moda'),
+                            TextSpan(
+                              text: 'Rapp',
+                              style: TextStyle(color: Color(0xFFE61858)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        'Fashion Delivered Fast',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
+          const SizedBox(width: 8),
 
           // Notification Bell & Cart Badge
           Row(
@@ -265,58 +272,102 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // 2. Deliver To Address & Delivery in 30 Mins Pill
   Widget _buildDeliveryInfo(BuildContext context) {
+    final addresses = ref.watch(addressListProvider);
+    final selectedAddress = ref.watch(selectedAddressProvider);
+
+    final activeAddress = selectedAddress ??
+        addresses.where((a) => a.isDefault).firstOrNull ??
+        addresses.firstOrNull;
+
+    final String titleText = activeAddress != null
+        ? 'Deliver to ${activeAddress.name}'
+        : 'Deliver to Home';
+
+    final String addressSubtitle;
+    if (activeAddress != null) {
+      final cleanLine = activeAddress.addressLine
+          .replaceAll('\n', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      final lineWithoutComma = cleanLine.endsWith(',')
+          ? cleanLine.substring(0, cleanLine.length - 1).trim()
+          : cleanLine;
+      final cleanCity = activeAddress.city
+          .replaceAll('\n', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      addressSubtitle = lineWithoutComma.isNotEmpty
+          ? '$lineWithoutComma, $cleanCity'
+          : cleanCity;
+    } else {
+      addressSubtitle = 'Indira Nagar, Lucknow - 226016';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Address Info
-          InkWell(
-            onTap: () => context.push('/address-list'),
-            borderRadius: BorderRadius.circular(8),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: Color(0xFFE61858),
-                  size: 22,
-                ),
-                const SizedBox(width: 6),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Text(
-                          'Deliver to Home',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF18181B),
-                          ),
+          Expanded(
+            child: InkWell(
+              onTap: () => context.push('/address-list'),
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: Color(0xFFE61858),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                titleText,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF18181B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 16,
+                              color: Color(0xFF18181B),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 16,
-                          color: Color(0xFF18181B),
+                        const SizedBox(height: 1),
+                        Text(
+                          addressSubtitle,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF71717A),
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 1),
-                    const Text(
-                      'Indira Nagar, Lucknow - 226016',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF71717A),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
+
+          const SizedBox(width: 8),
 
           // 30 Minutes Delivery Badge
           Container(
@@ -527,36 +578,44 @@ class _HomePageState extends ConsumerState<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF18181B),
-                      ),
-                      children: [
-                        TextSpan(text: "Today's "),
-                        TextSpan(
-                          text: 'Special Deals',
-                          style: TextStyle(color: Color(0xFFE61858)),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF18181B),
+                          ),
+                          children: [
+                            TextSpan(text: "Today's "),
+                            TextSpan(
+                              text: 'Special Deals',
+                              style: TextStyle(color: Color(0xFFE61858)),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Best fashion at best prices',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Best fashion at best prices',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF71717A),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
+                ),
               ),
+
+              const SizedBox(width: 8),
 
               // Countdown Timer
               Column(
@@ -645,35 +704,39 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   color: Color(0xFF18181B),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    deal['discount']!,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFFE61858),
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 19,
-                                    height: 19,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFE61858),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: Colors.white,
-                                        size: 13,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      deal['discount']!,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFFE61858),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      width: 19,
+                                      height: 19,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFE61858),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.arrow_forward_rounded,
+                                          color: Colors.white,
+                                          size: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -763,13 +826,17 @@ class _HomePageState extends ConsumerState<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'New Arrivals',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.3,
+              const Expanded(
+                child: Text(
+                  'New Arrivals',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               InkWell(

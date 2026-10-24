@@ -133,6 +133,7 @@ class Address {
   final String addressLine;
   final String city;
   final String phone;
+  final String recipientName;
   final bool isDefault;
 
   Address({
@@ -141,6 +142,7 @@ class Address {
     required this.addressLine,
     required this.city,
     required this.phone,
+    this.recipientName = 'Saif Khan',
     this.isDefault = false,
   });
 
@@ -150,6 +152,7 @@ class Address {
     String? addressLine,
     String? city,
     String? phone,
+    String? recipientName,
     bool? isDefault,
   }) {
     return Address(
@@ -158,6 +161,7 @@ class Address {
       addressLine: addressLine ?? this.addressLine,
       city: city ?? this.city,
       phone: phone ?? this.phone,
+      recipientName: recipientName ?? this.recipientName,
       isDefault: isDefault ?? this.isDefault,
     );
   }
@@ -789,14 +793,11 @@ final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
 
 // Selected Address Provider
 final selectedAddressProvider = StateProvider<Address?>((ref) {
-  return Address(
-    id: 'a1',
-    name: 'Home',
-    addressLine: 'Indira Nagar, House No. 123,',
-    city: 'Lucknow, Uttar Pradesh - 226016',
-    phone: '+91 98765 43210',
-    isDefault: true,
-  );
+  final addresses = ref.watch(addressListProvider);
+  for (final addr in addresses) {
+    if (addr.isDefault) return addr;
+  }
+  return addresses.isNotEmpty ? addresses.first : null;
 });
 
 // Address List Provider
@@ -806,6 +807,7 @@ class AddressListNotifier extends StateNotifier<List<Address>> {
         Address(
           id: 'a1',
           name: 'Home',
+          recipientName: 'Saif Khan',
           addressLine: 'Indira Nagar, House No. 123,',
           city: 'Lucknow, Uttar Pradesh - 226016',
           phone: '+91 98765 43210',
@@ -813,13 +815,38 @@ class AddressListNotifier extends StateNotifier<List<Address>> {
         ),
         Address(
           id: 'a2',
-          name: 'Office',
-          addressLine: 'Hazratganj, Commercial Tower, 4th Floor',
-          city: 'Lucknow, Uttar Pradesh - 226001',
+          name: 'Work',
+          recipientName: 'Saif Khan',
+          addressLine: 'Tower B, 5th Floor, IT Park,\nVibhuti Khand, Gomti Nagar,',
+          city: 'Lucknow, Uttar Pradesh - 226010',
+          phone: '+91 98765 43210',
+          isDefault: false,
+        ),
+        Address(
+          id: 'a3',
+          name: 'Other',
+          recipientName: 'Saif Khan',
+          addressLine: 'Plot No. 45, Near Phoenix Mall,\nAlambagh, Lucknow,',
+          city: 'Uttar Pradesh - 226005',
+          phone: '+91 98765 43210',
+          isDefault: false,
+        ),
+        Address(
+          id: 'a4',
+          name: 'Parents Home',
+          recipientName: 'Saif Khan',
+          addressLine: 'Village - Chinhat, Post - Matiyari,',
+          city: 'Lucknow, Uttar Pradesh - 227105',
           phone: '+91 98765 43210',
           isDefault: false,
         ),
       ]);
+
+  void setDefaultAddress(String addressId) {
+    state = state.map((a) {
+      return a.copyWith(isDefault: a.id == addressId);
+    }).toList();
+  }
 
   void addAddress(Address address) {
     if (address.isDefault) {
@@ -841,6 +868,12 @@ class AddressListNotifier extends StateNotifier<List<Address>> {
 
   void deleteAddress(String addressId) {
     state = state.where((a) => a.id != addressId).toList();
+    if (state.isNotEmpty && !state.any((a) => a.isDefault)) {
+      state = [
+        state.first.copyWith(isDefault: true),
+        ...state.sublist(1),
+      ];
+    }
   }
 }
 
