@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/providers/products_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -16,8 +18,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _secondsRemaining = 6 * 3600 + 24 * 60 + 18;
   Timer? _dealTimer;
 
-  // Track favorited items
-  final Set<int> _favoritedItems = {};
 
   @override
   void initState() {
@@ -155,9 +155,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         TextSpan(text: 'Moda'),
                         TextSpan(
                           text: 'Rapp',
-                          style: TextStyle(
-                            color: Color(0xFFE61858),
-                          ),
+                          style: TextStyle(color: Color(0xFFE61858)),
                         ),
                       ],
                     ),
@@ -226,25 +224,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                         color: Color(0xFF18181B),
                         size: 25,
                       ),
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(3.5),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE61858),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Text(
-                            '3',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final cartList = ref.watch(cartProvider);
+                          final cartCount =
+                              cartList.fold(0, (sum, i) => sum + i.quantity);
+                          if (cartCount == 0) return const SizedBox.shrink();
+                          return Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(3.5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE61858),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '$cartCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -375,11 +381,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           child: Row(
             children: const [
-              Icon(
-                Icons.search_rounded,
-                color: Color(0xFF9CA3AF),
-                size: 22,
-              ),
+              Icon(Icons.search_rounded, color: Color(0xFF9CA3AF), size: 22),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -391,11 +393,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-              Icon(
-                Icons.tune_rounded,
-                color: Color(0xFF18181B),
-                size: 20,
-              ),
+              Icon(Icons.tune_rounded, color: Color(0xFF18181B), size: 20),
             ],
           ),
         ),
@@ -469,10 +467,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     shape: BoxShape.circle,
                   ),
                   child: ClipOval(
-                    child: Image.asset(
-                      cat['image']!,
-                      fit: BoxFit.cover,
-                    ),
+                    child: Image.asset(cat['image']!, fit: BoxFit.cover),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -546,9 +541,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         TextSpan(text: "Today's "),
                         TextSpan(
                           text: 'Special Deals',
-                          style: TextStyle(
-                            color: Color(0xFFE61858),
-                          ),
+                          style: TextStyle(color: Color(0xFFE61858)),
                         ),
                       ],
                     ),
@@ -821,7 +814,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                   children: List.generate(products.length, (index) {
                     final prod = products[index];
                     final prodId = prod['id'] as int;
-                    final isFavorited = _favoritedItems.contains(prodId);
+                    final wishlist = ref.watch(wishlistProvider);
+                    final isFavorited = wishlist.any(
+                      (p) =>
+                          p.id == 'arrival_$prodId' ||
+                          (p.title.isNotEmpty &&
+                              p.title.toLowerCase() ==
+                                  prod['title'].toString().toLowerCase()),
+                    );
 
                     return Container(
                       width: cardWidth,
@@ -830,12 +830,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       child: InkWell(
                         onTap: () {
-                          context.push('/product-details', extra: {
-                            'id': 'prod_$prodId',
-                            'name': prod['title'],
-                            'price': prod['price'],
-                            'image': prod['image'],
-                          });
+                          final cleanPrice = (prod['price'] as String)
+                              .replaceAll(RegExp(r'[^\d]'), '');
+                          final priceNum = int.tryParse(cleanPrice) ?? 999;
+                          final origPrice = (priceNum * 1.35).round();
+
+                          context.push(
+                            '/product-details',
+                            extra: {
+                              'id': 'arrival_$prodId',
+                              'title': prod['title'],
+                              'name': prod['title'],
+                              'brand': 'ModaRapp',
+                              'price': prod['price'],
+                              'originalPrice': '₹$origPrice',
+                              'discount': '26% OFF',
+                              'image': prod['image'],
+                              'imageUrl': prod['image'],
+                              'rating': 4.7,
+                              'reviews': '1.2K',
+                              'category': 'Fashion',
+                            },
+                          );
                         },
                         borderRadius: BorderRadius.circular(16),
                         child: Column(
@@ -861,13 +877,80 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   right: 6,
                                   child: GestureDetector(
                                     onTap: () {
-                                      setState(() {
-                                        if (isFavorited) {
-                                          _favoritedItems.remove(prodId);
-                                        } else {
-                                          _favoritedItems.add(prodId);
-                                        }
-                                      });
+                                      final cleanPrice =
+                                          (prod['price'] as String).replaceAll(
+                                            RegExp(r'[^\d]'),
+                                            '',
+                                          );
+                                      final priceNum =
+                                          int.tryParse(cleanPrice) ?? 999;
+                                      final product = Product(
+                                        id: 'arrival_$prodId',
+                                        title: prod['title'] as String,
+                                        brand: 'ModaRapp',
+                                        imageUrl: prod['image'] as String,
+                                        price: priceNum.toDouble(),
+                                        originalPrice: (priceNum * 1.35),
+                                        rating: 4.7,
+                                        reviewsCount: 1200,
+                                        weight: 'M',
+                                        description:
+                                            'Trendy ${prod['title']} from ModaRapp Collection',
+                                        category: 'Fashion',
+                                      );
+                                      ref
+                                          .read(wishlistProvider.notifier)
+                                          .toggleWishlist(product);
+                                      final nowWishlisted = !isFavorited;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).hideCurrentSnackBar();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(
+                                                nowWishlisted
+                                                    ? Icons.favorite_rounded
+                                                    : Icons
+                                                        .favorite_border_rounded,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  nowWishlisted
+                                                      ? '${prod['title']} added to Wishlist'
+                                                      : '${prod['title']} removed from Wishlist',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: nowWishlisted
+                                              ? const Color(0xFFE61858)
+                                              : const Color(0xFF3F3F46),
+                                          duration: const Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                          action: nowWishlisted
+                                              ? SnackBarAction(
+                                                  label: 'VIEW',
+                                                  textColor: Colors.white,
+                                                  onPressed: () {
+                                                    try {
+                                                      context.go('/wishlist');
+                                                    } catch (_) {
+                                                      try {
+                                                        context.push(
+                                                          '/wishlist',
+                                                        );
+                                                      } catch (_) {}
+                                                    }
+                                                  },
+                                                )
+                                              : null,
+                                        ),
+                                      );
                                     },
                                     child: Container(
                                       width: 24,

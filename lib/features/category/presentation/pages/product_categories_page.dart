@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/providers/products_provider.dart';
 
 class ProductCategoriesPage extends ConsumerStatefulWidget {
   final String categoryName;
 
-  const ProductCategoriesPage({
-    super.key,
-    this.categoryName = "Men's Fashion",
-  });
+  const ProductCategoriesPage({super.key, this.categoryName = "Men's Fashion"});
 
   @override
   ConsumerState<ProductCategoriesPage> createState() =>
@@ -21,7 +19,6 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
   String _selectedSort = 'Sort';
   String? _selectedFilterChip = 'Sort';
   bool _isGridView = true;
-  final Set<int> _wishlistedProductIds = {};
 
   // 12 Subcategories for the Left Rail
   final List<Map<String, String>> _subcategories = [
@@ -36,17 +33,14 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
     {'title': 'Ethnic Wear', 'icon': 'assets/images/subcat_icon_ethnic.png'},
     {'title': 'Active Wear', 'icon': 'assets/images/subcat_icon_active.png'},
     {'title': 'Innerwear', 'icon': 'assets/images/subcat_icon_innerwear.png'},
-    {'title': 'Accessories', 'icon': 'assets/images/subcat_icon_accessories.png'},
+    {
+      'title': 'Accessories',
+      'icon': 'assets/images/subcat_icon_accessories.png',
+    },
   ];
 
   // Filter Chips
-  final List<String> _filterChips = [
-    'Sort',
-    'Size',
-    'Brand',
-    'Color',
-    'Price',
-  ];
+  final List<String> _filterChips = ['Sort', 'Size', 'Brand', 'Color', 'Price'];
 
   // 6 Main Products
   final List<Map<String, dynamic>> _products = [
@@ -164,15 +158,10 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                         _buildLeftSubcategoryRail(),
 
                         // Vertical Subtle Divider
-                        Container(
-                          width: 1,
-                          color: const Color(0xFFF1F1F4),
-                        ),
+                        Container(width: 1, color: const Color(0xFFF1F1F4)),
 
                         // Right Area: Banner + Filters + Product Grid
-                        Expanded(
-                          child: _buildRightProductArea(context),
-                        ),
+                        Expanded(child: _buildRightProductArea(context)),
                       ],
                     ),
                   ),
@@ -187,6 +176,8 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
 
   // 1. Top App Bar
   Widget _buildTopAppBar(BuildContext context) {
+    final cartItems = ref.watch(cartProvider);
+    final cartCount = cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -242,9 +233,7 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                             TextSpan(text: 'Moda'),
                             TextSpan(
                               text: 'Rapp',
-                              style: TextStyle(
-                                color: Color(0xFFE61858),
-                              ),
+                              style: TextStyle(color: Color(0xFFE61858)),
                             ),
                           ],
                         ),
@@ -290,17 +279,66 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
               const SizedBox(width: 4),
 
               // Wishlist Heart Icon
-              InkWell(
-                onTap: () => context.push('/wishlist'),
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.favorite_border_rounded,
-                    color: Color(0xFF18181B),
-                    size: 23,
-                  ),
-                ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final wishlist = ref.watch(wishlistProvider);
+                  final hasItems = wishlist.isNotEmpty;
+                  return InkWell(
+                    onTap: () {
+                      try {
+                        context.go('/wishlist');
+                      } catch (_) {
+                        try {
+                          context.push('/wishlist');
+                        } catch (_) {}
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(
+                            hasItems
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: hasItems
+                                ? const Color(0xFFE61858)
+                                : const Color(0xFF18181B),
+                            size: 23,
+                          ),
+                          if (hasItems)
+                            Positioned(
+                              top: -3,
+                              right: -3,
+                              child: Container(
+                                padding: const EdgeInsets.all(2.5),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE61858),
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
+                                child: Text(
+                                  '${wishlist.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(width: 4),
@@ -319,26 +357,27 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                         color: Color(0xFF18181B),
                         size: 24,
                       ),
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(3.5),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE61858),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Text(
-                            '3',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9.0,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
+                      if (cartCount > 0)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(3.5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE61858),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$cartCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.0,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -404,7 +443,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFFFF0F3) : Colors.transparent,
+                color: isSelected
+                    ? const Color(0xFFFFF0F3)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected
@@ -419,10 +460,7 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                   // Icon
                   SizedBox(
                     height: 30,
-                    child: Image.asset(
-                      subcat['icon']!,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.asset(subcat['icon']!, fit: BoxFit.contain),
                   ),
                   const SizedBox(height: 4),
                   // Label
@@ -433,8 +471,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight:
-                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
                       color: isSelected
                           ? const Color(0xFFE61858)
                           : const Color(0xFF71717A),
@@ -456,12 +495,11 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
     final activeSubcatTitle = _subcategories[_selectedSubcatIndex]['title'];
     final displayedProducts = (activeSubcatTitle == 'All')
         ? _products
-        : _products
-            .where((p) => p['category'] == activeSubcatTitle)
-            .toList();
+        : _products.where((p) => p['category'] == activeSubcatTitle).toList();
 
-    final productList =
-        displayedProducts.isEmpty ? _products : displayedProducts;
+    final productList = displayedProducts.isEmpty
+        ? _products
+        : displayedProducts;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -567,8 +605,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                           : chip,
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight:
-                            (isSort || isSelected) ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: (isSort || isSelected)
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                         color: (isSort || isSelected)
                             ? const Color(0xFFE61858)
                             : const Color(0xFF18181B),
@@ -672,7 +711,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
 
   // D. 2-Column Product Grid (Responsive for Phone & Tablet)
   Widget _buildProductGrid(
-      BuildContext context, List<Map<String, dynamic>> productList) {
+    BuildContext context,
+    List<Map<String, dynamic>> productList,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Tablet supports 3 or 4 columns, phone has 2 columns
@@ -680,7 +721,8 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
         final crossAxisCount = isTablet ? 3 : 2;
         const spacing = 10.0;
         final totalSpacing = spacing * (crossAxisCount - 1);
-        final cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+        final cardWidth =
+            (constraints.maxWidth - totalSpacing) / crossAxisCount;
 
         return Wrap(
           spacing: spacing,
@@ -698,7 +740,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
 
   // List View Mode
   Widget _buildProductList(
-      BuildContext context, List<Map<String, dynamic>> productList) {
+    BuildContext context,
+    List<Map<String, dynamic>> productList,
+  ) {
     return Column(
       children: productList.map((prod) {
         return Padding(
@@ -710,10 +754,15 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
   }
 
   // Product Card in Grid
-  Widget _buildProductCard(
-      BuildContext context, Map<String, dynamic> prod) {
-    final prodId = prod['id'] as int;
-    final isWishlisted = _wishlistedProductIds.contains(prodId);
+  Widget _buildProductCard(BuildContext context, Map<String, dynamic> prod) {
+    final product = Product.fromMap(prod);
+    final wishlist = ref.watch(wishlistProvider);
+    final isWishlisted = wishlist.any(
+      (p) =>
+          p.id == product.id ||
+          (p.title.isNotEmpty &&
+              p.title.toLowerCase() == product.title.toLowerCase()),
+    );
 
     return InkWell(
       onTap: () {
@@ -743,21 +792,50 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                 right: 7,
                 child: InkWell(
                   onTap: () {
-                    setState(() {
-                      if (isWishlisted) {
-                        _wishlistedProductIds.remove(prodId);
-                      } else {
-                        _wishlistedProductIds.add(prodId);
-                      }
-                    });
+                    ref.read(wishlistProvider.notifier).toggleWishlist(product);
+                    final nowWishlisted = !isWishlisted;
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          isWishlisted
-                              ? '${prod['title']} removed from Wishlist'
-                              : '${prod['title']} added to Wishlist',
+                        content: Row(
+                          children: [
+                            Icon(
+                              nowWishlisted
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                nowWishlisted
+                                    ? '${prod['title']} added to Wishlist'
+                                    : '${prod['title']} removed from Wishlist',
+                              ),
+                            ),
+                          ],
                         ),
-                        duration: const Duration(seconds: 1),
+                        backgroundColor: nowWishlisted
+                            ? const Color(0xFFE61858)
+                            : const Color(0xFF3F3F46),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                        action: nowWishlisted
+                            ? SnackBarAction(
+                                label: 'VIEW',
+                                textColor: Colors.white,
+                                onPressed: () {
+                                  try {
+                                    context.go('/wishlist');
+                                  } catch (_) {
+                                    try {
+                                      context.push('/wishlist');
+                                    } catch (_) {}
+                                  }
+                                },
+                              )
+                            : null,
                       ),
                     );
                   },
@@ -844,10 +922,7 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
               const SizedBox(width: 2),
               Text(
                 prod['reviews'] as String,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF71717A),
-                ),
+                style: const TextStyle(fontSize: 10, color: Color(0xFF71717A)),
               ),
             ],
           ),
@@ -877,7 +952,10 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 1.5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF0F3),
                   borderRadius: BorderRadius.circular(4),
@@ -902,19 +980,31 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
             height: 32,
             child: OutlinedButton(
               onPressed: () {
+                final product = Product.fromMap(prod);
+                ref.read(cartProvider.notifier).addToCart(product);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${prod['title']} added to Cart!'),
-                    backgroundColor: const Color(0xFFE61858),
-                    duration: const Duration(seconds: 1),
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('${prod['title']} added to Cart!')),
+                      ],
+                    ),
+                    backgroundColor: const Color(0xFF16A34A),
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    action: SnackBarAction(
+                      label: 'VIEW CART',
+                      textColor: Colors.white,
+                      onPressed: () => context.push('/cart'),
+                    ),
                   ),
                 );
               },
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(
-                  color: Color(0xFFE61858),
-                  width: 1.1,
-                ),
+                side: const BorderSide(color: Color(0xFFE61858), width: 1.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -952,9 +1042,17 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
 
   // Product Card in List View
   Widget _buildProductListItem(
-      BuildContext context, Map<String, dynamic> prod) {
-    final prodId = prod['id'] as int;
-    final isWishlisted = _wishlistedProductIds.contains(prodId);
+    BuildContext context,
+    Map<String, dynamic> prod,
+  ) {
+    final product = Product.fromMap(prod);
+    final wishlist = ref.watch(wishlistProvider);
+    final isWishlisted = wishlist.any(
+      (p) =>
+          p.id == product.id ||
+          (p.title.isNotEmpty &&
+              p.title.toLowerCase() == product.title.toLowerCase()),
+    );
 
     return InkWell(
       onTap: () {
@@ -976,10 +1074,7 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
               child: SizedBox(
                 width: 90,
                 height: 90,
-                child: Image.asset(
-                  prod['image'] as String,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.asset(prod['image'] as String, fit: BoxFit.cover),
               ),
             ),
 
@@ -1007,13 +1102,52 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                       ),
                       InkWell(
                         onTap: () {
-                          setState(() {
-                            if (isWishlisted) {
-                              _wishlistedProductIds.remove(prodId);
-                            } else {
-                              _wishlistedProductIds.add(prodId);
-                            }
-                          });
+                          ref.read(wishlistProvider.notifier).toggleWishlist(product);
+                          final nowWishlisted = !isWishlisted;
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(
+                                    nowWishlisted
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      nowWishlisted
+                                          ? '${prod['title']} added to Wishlist'
+                                          : '${prod['title']} removed from Wishlist',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: nowWishlisted
+                                  ? const Color(0xFFE61858)
+                                  : const Color(0xFF3F3F46),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              action: nowWishlisted
+                                  ? SnackBarAction(
+                                      label: 'VIEW',
+                                      textColor: Colors.white,
+                                      onPressed: () {
+                                        try {
+                                          context.go('/wishlist');
+                                        } catch (_) {
+                                          try {
+                                            context.push('/wishlist');
+                                          } catch (_) {}
+                                        }
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          );
                         },
                         child: Icon(
                           isWishlisted
@@ -1058,7 +1192,9 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF0F3),
                           borderRadius: BorderRadius.circular(4),
@@ -1073,6 +1209,68 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 28,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        final product = Product.fromMap(prod);
+                        ref.read(cartProvider.notifier).addToCart(product);
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded,
+                                    color: Colors.white, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text('${prod['title']} added to Cart!')),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF16A34A),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            action: SnackBarAction(
+                              label: 'VIEW CART',
+                              textColor: Colors.white,
+                              onPressed: () => context.push('/cart'),
+                            ),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                            color: Color(0xFFE61858), width: 1.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 13,
+                              color: Color(0xFFE61858),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Add to Cart',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFE61858),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1122,16 +1320,20 @@ class _ProductCategoriesPageState extends ConsumerState<ProductCategoriesPage> {
                   title: Text(
                     opt,
                     style: TextStyle(
-                      fontWeight:
-                          isSelected ? FontWeight.w800 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w500,
                       color: isSelected
                           ? const Color(0xFFE61858)
                           : const Color(0xFF18181B),
                     ),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_rounded,
-                          color: Color(0xFFE61858), size: 18)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: Color(0xFFE61858),
+                          size: 18,
+                        )
                       : null,
                   onTap: () {
                     setState(() {

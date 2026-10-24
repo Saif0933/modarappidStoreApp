@@ -8,18 +8,50 @@ class UserProfile {
   final String name;
   final String email;
   final String phone;
+  final String gender;
+  final String dob;
+  final String addressTitle;
+  final String addressDetails;
+  final String addressPhone;
+  final String occupation;
+  final String city;
 
   UserProfile({
     required this.name,
     required this.email,
     required this.phone,
+    this.gender = 'Male',
+    this.dob = '15 Mar 1998',
+    this.addressTitle = 'Home',
+    this.addressDetails = 'Indira Nagar, House No. 123,\nLucknow, Uttar Pradesh - 226016',
+    this.addressPhone = '+91 98765 43210',
+    this.occupation = 'Software Engineer',
+    this.city = 'Lucknow',
   });
 
-  UserProfile copyWith({String? name, String? email, String? phone}) {
+  UserProfile copyWith({
+    String? name,
+    String? email,
+    String? phone,
+    String? gender,
+    String? dob,
+    String? addressTitle,
+    String? addressDetails,
+    String? addressPhone,
+    String? occupation,
+    String? city,
+  }) {
     return UserProfile(
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      gender: gender ?? this.gender,
+      dob: dob ?? this.dob,
+      addressTitle: addressTitle ?? this.addressTitle,
+      addressDetails: addressDetails ?? this.addressDetails,
+      addressPhone: addressPhone ?? this.addressPhone,
+      occupation: occupation ?? this.occupation,
+      city: city ?? this.city,
     );
   }
 }
@@ -27,13 +59,42 @@ class UserProfile {
 class UserProfileNotifier extends StateNotifier<UserProfile> {
   UserProfileNotifier()
       : super(UserProfile(
-          name: 'Priya Sharma',
-          email: 'priya.sharma@example.com',
+          name: 'Mohammad Saif',
+          email: 'saif@example.com',
           phone: '+91 98765 43210',
+          gender: 'Male',
+          dob: '15 Mar 1998',
+          addressTitle: 'Home',
+          addressDetails: 'Indira Nagar, House No. 123,\nLucknow, Uttar Pradesh - 226016',
+          addressPhone: '+91 98765 43210',
+          occupation: 'Software Engineer',
+          city: 'Lucknow',
         ));
 
-  void updateProfile(String name, String email, String phone) {
-    state = UserProfile(name: name, email: email, phone: phone);
+  void updateProfile(
+    String name,
+    String email,
+    String phone, {
+    String? gender,
+    String? dob,
+    String? addressTitle,
+    String? addressDetails,
+    String? addressPhone,
+    String? occupation,
+    String? city,
+  }) {
+    state = state.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      gender: gender,
+      dob: dob,
+      addressTitle: addressTitle,
+      addressDetails: addressDetails,
+      addressPhone: addressPhone,
+      occupation: occupation,
+      city: city,
+    );
   }
 }
 
@@ -123,52 +184,58 @@ class ProfilePage extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Logo & Brand Name
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/modarapp_logo.png',
-                  width: 38,
-                  height: 38,
-                  fit: BoxFit.contain,
+          Expanded(
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/modarapp_logo.png',
+                    width: 38,
+                    height: 38,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF18181B),
-                        letterSpacing: -0.3,
-                      ),
-                      children: [
-                        TextSpan(text: 'Moda'),
-                        TextSpan(
-                          text: 'Rapp',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: const TextSpan(
                           style: TextStyle(
-                            color: Color(0xFFE61858),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF18181B),
+                            letterSpacing: -0.3,
                           ),
+                          children: [
+                            TextSpan(text: 'Moda'),
+                            TextSpan(
+                              text: 'Rapp',
+                              style: TextStyle(
+                                color: Color(0xFFE61858),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const Text(
+                        'Fashion Delivered Fast',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.8,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const Text(
-                    'Fashion Delivered Fast',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      color: Color(0xFF71717A),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
 
           // Notification Bell & Cart Badge

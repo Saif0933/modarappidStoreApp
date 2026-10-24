@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../shared/providers/products_provider.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
@@ -34,7 +35,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         rating: 4.8,
         reviewsCount: 320,
         weight: 'M',
-        description: 'Men Solid Casual Black Shirt with breathable cotton fabric.',
+        description:
+            'Men Solid Casual Black Shirt with breathable cotton fabric.',
         category: 'Shirts',
       ),
       quantity: 1,
@@ -78,7 +80,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final lastThree = s.substring(s.length - 3);
     final rest = s.substring(0, s.length - 3);
     final regExp = RegExp(r'(\d+?)(?=(\d{2})+$)');
-    final formattedRest = rest.replaceAllMapped(regExp, (Match m) => '${m[1]},');
+    final formattedRest = rest.replaceAllMapped(
+      regExp,
+      (Match m) => '${m[1]},',
+    );
     return '${isNegative ? "- " : ""}₹$formattedRest,$lastThree';
   }
 
@@ -98,14 +103,17 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     }
   }
 
-  Future<void> _handlePlaceOrder(List<CartItem> items, double totalAmount) async {
+  Future<void> _handlePlaceOrder(
+    List<CartItem> items,
+    double totalAmount,
+  ) async {
     if (_isPlacingOrder) return;
     setState(() => _isPlacingOrder = true);
 
     // Call order notifier
-    ref.read(ordersProvider.notifier).placeOrder(items, totalAmount);
-
-    final mockOrderId = 'ORD-${10000 + ref.read(ordersProvider).length * 17}';
+    final orderId = ref
+        .read(ordersProvider.notifier)
+        .placeOrder(items, totalAmount);
 
     await Future.delayed(const Duration(milliseconds: 600));
 
@@ -114,7 +122,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     // Clear cart or update state
     ref.read(cartProvider.notifier).clearCart();
 
-    context.go('/order-success', extra: mockOrderId);
+    context.go('/order-success', extra: orderId);
   }
 
   @override
@@ -133,30 +141,46 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       checkoutItems = rawCartList;
     } else if (rawCartList.length == 3) {
       // Exclude third item to match exact 2-item checkout screenshot
-      checkoutItems = rawCartList.where((item) => item.product.id != 'c3').toList();
+      checkoutItems = rawCartList
+          .where((item) => item.product.id != 'c3')
+          .toList();
     } else if (rawCartList.isNotEmpty) {
       checkoutItems = rawCartList;
     } else {
       checkoutItems = _referenceCheckoutItems;
     }
 
-    final int itemCount = checkoutItems.fold(0, (sum, item) => sum + item.quantity);
+    final int itemCount = checkoutItems.fold(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
     final double totalMrp = checkoutItems.fold(
       0.0,
-      (sum, item) => sum + ((item.product.originalPrice ?? item.product.price) * item.quantity),
+      (sum, item) =>
+          sum +
+          ((item.product.originalPrice ?? item.product.price) * item.quantity),
     );
     final double subtotal = checkoutItems.fold(
       0.0,
       (sum, item) => sum + (item.product.price * item.quantity),
     );
-    final bool isExactReferencePair = checkoutItems.length == 2 &&
+    final bool isExactReferencePair =
+        checkoutItems.length == 2 &&
         checkoutItems.any((i) => i.product.id == 'c1') &&
         checkoutItems.any((i) => i.product.id == 'c2');
 
-    final double itemDiscount = isExactReferencePair ? 800.0 : (totalMrp - subtotal);
+    final double itemDiscount = isExactReferencePair
+        ? 800.0
+        : (totalMrp - subtotal);
     const double deliveryFee = 30.0;
-    final double currentCouponDiscount = _appliedCoupon != null ? _couponDiscount : 0.0;
-    final double totalAmount = (totalMrp - itemDiscount - currentCouponDiscount + deliveryFee).clamp(0.0, double.infinity);
+    final double currentCouponDiscount = _appliedCoupon != null
+        ? _couponDiscount
+        : 0.0;
+    final double totalAmount =
+        (totalMrp - itemDiscount - currentCouponDiscount + deliveryFee).clamp(
+          0.0,
+          double.infinity,
+        );
     final double totalSavings = itemDiscount + currentCouponDiscount;
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -301,7 +325,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Column(
                   children: [
                     _buildStepper(),
@@ -319,7 +346,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                                 children: [
                                   _buildAddressCard(context, selectedAddress),
                                   const SizedBox(height: 10),
-                                  _buildOrderItemsCard(context, items, itemCount),
+                                  _buildOrderItemsCard(
+                                    context,
+                                    items,
+                                    itemCount,
+                                  ),
                                   const SizedBox(height: 10),
                                   _buildCouponsCard(context),
                                   const SizedBox(height: 10),
@@ -397,11 +428,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             borderRadius: BorderRadius.circular(20),
             child: const Padding(
               padding: EdgeInsets.all(4.0),
-              child: Icon(
-                Icons.arrow_back,
-                size: 22,
-                color: Color(0xFF18181B),
-              ),
+              child: Icon(Icons.arrow_back, size: 22, color: Color(0xFF18181B)),
             ),
           ),
 
@@ -426,19 +453,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             decoration: BoxDecoration(
               color: const Color(0xFFFFF0F3),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFFFFE4E6),
-                width: 1.0,
-              ),
+              border: Border.all(color: const Color(0xFFFFE4E6), width: 1.0),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(
-                  Icons.bolt_rounded,
-                  size: 14,
-                  color: Color(0xFFE61858),
-                ),
+                Icon(Icons.bolt_rounded, size: 14, color: Color(0xFFE61858)),
                 SizedBox(width: 3),
                 Text(
                   '30-Minute Delivery',
@@ -481,10 +501,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
               // Connecting Line 1 (Solid Pink)
               Expanded(
-                child: Container(
-                  height: 2.0,
-                  color: const Color(0xFFE61858),
-                ),
+                child: Container(height: 2.0, color: const Color(0xFFE61858)),
               ),
 
               // Step 2: Payment (Active Current - White "2" on Pink Circle)
@@ -503,10 +520,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
               // Connecting Line 2 (Inactive Grey)
               Expanded(
-                child: Container(
-                  height: 1.5,
-                  color: const Color(0xFFE4E4E7),
-                ),
+                child: Container(height: 1.5, color: const Color(0xFFE4E4E7)),
               ),
 
               // Step 3: Review (Inactive - Grey "3" on Grey Border Circle)
@@ -596,10 +610,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: const Color(0xFFD4D4D8),
-            width: 1.0,
-          ),
+          border: Border.all(color: const Color(0xFFD4D4D8), width: 1.0),
         ),
         child: Center(child: child),
       );
@@ -616,10 +627,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -676,10 +684,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             decoration: BoxDecoration(
               color: const Color(0xFFFFF9FA),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFDECEF),
-                width: 1.0,
-              ),
+              border: Border.all(color: const Color(0xFFFDECEF), width: 1.0),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,7 +716,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        selectedAddress?.addressLine ?? 'Indira Nagar, House No. 123,',
+                        selectedAddress?.addressLine ??
+                            'Indira Nagar, House No. 123,',
                         style: const TextStyle(
                           fontSize: 11.5,
                           color: Color(0xFF52525B),
@@ -719,7 +725,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         ),
                       ),
                       Text(
-                        selectedAddress?.city ?? 'Lucknow, Uttar Pradesh - 226016',
+                        selectedAddress?.city ??
+                            'Lucknow, Uttar Pradesh - 226016',
                         style: const TextStyle(
                           fontSize: 11.5,
                           color: Color(0xFF52525B),
@@ -765,17 +772,18 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   // ─────────────────────────────────────────────────────────────
   // 4. Card 2: Order Items (2)
   // ─────────────────────────────────────────────────────────────
-  Widget _buildOrderItemsCard(BuildContext context, List<CartItem> items, int itemCount) {
+  Widget _buildOrderItemsCard(
+    BuildContext context,
+    List<CartItem> items,
+    int itemCount,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -981,7 +989,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
                           // Discount Pill
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.5,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFFF0F3),
                               borderRadius: BorderRadius.circular(4),
@@ -1030,10 +1041,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -1101,10 +1109,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFFFEF1F6),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFFFFDEE7),
-                  width: 1.0,
-                ),
+                border: Border.all(color: const Color(0xFFFFDEE7), width: 1.0),
               ),
               child: Row(
                 children: [
@@ -1179,7 +1184,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     },
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
@@ -1206,7 +1214,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               onTap: () => _showCouponSelectionModal(context),
               borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(10),
@@ -1218,7 +1229,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.local_offer_outlined, size: 18, color: Color(0xFFE61858)),
+                    Icon(
+                      Icons.local_offer_outlined,
+                      size: 18,
+                      color: Color(0xFFE61858),
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1257,10 +1272,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -1331,7 +1343,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   _buildMiniBrandBadge(const Color(0xFF00B9F1), 'P'),
                   const SizedBox(width: 3),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1.5,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF4F4F5),
                       borderRadius: BorderRadius.circular(4),
@@ -1418,10 +1433,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     return Container(
       width: 16,
       height: 16,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: Center(
         child: Text(
           text,
@@ -1452,7 +1464,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
           color: isSelected ? const Color(0xFFFFF9FA) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFDECEF) : const Color(0xFFF1F1F4),
+            color: isSelected
+                ? const Color(0xFFFDECEF)
+                : const Color(0xFFF1F1F4),
             width: 1.0,
           ),
         ),
@@ -1465,7 +1479,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFE61858) : const Color(0xFFD4D4D8),
+                  color: isSelected
+                      ? const Color(0xFFE61858)
+                      : const Color(0xFFD4D4D8),
                   width: isSelected ? 5.0 : 1.5,
                 ),
               ),
@@ -1479,9 +1495,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             const SizedBox(width: 10),
 
             // Payment Title
-            Expanded(
-              child: titleWidget,
-            ),
+            Expanded(child: titleWidget),
 
             if (trailingWidget != null) ...[
               const SizedBox(width: 6),
@@ -1521,10 +1535,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -1607,7 +1618,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Delivery fee is standard for 30-minute express courier delivery.'),
+                            content: Text(
+                              'Delivery fee is standard for 30-minute express courier delivery.',
+                            ),
                             duration: Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -1750,9 +1763,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFF1F1F4), width: 1.0),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFF1F1F4), width: 1.0)),
         boxShadow: [
           BoxShadow(
             color: Color(0x0A000000),
@@ -1797,7 +1808,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     const SizedBox(height: 2),
                     RichText(
                       text: TextSpan(
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF71717A),
+                        ),
                         children: [
                           TextSpan(text: '$itemCount items • '),
                           TextSpan(
@@ -1832,7 +1846,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -1889,10 +1906,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFF1F1F4),
-          width: 1.0,
-        ),
+        border: Border.all(color: const Color(0xFFF1F1F4), width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1991,11 +2005,20 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       ),
       child: Column(
         children: [
-          _buildAssuranceRow(Icons.verified_user_rounded, '100% Genuine Products'),
+          _buildAssuranceRow(
+            Icons.verified_user_rounded,
+            '100% Genuine Products',
+          ),
           const SizedBox(height: 8),
-          _buildAssuranceRow(Icons.lock_outline_rounded, 'Safe & Encrypted Payments'),
+          _buildAssuranceRow(
+            Icons.lock_outline_rounded,
+            'Safe & Encrypted Payments',
+          ),
           const SizedBox(height: 8),
-          _buildAssuranceRow(Icons.assignment_return_outlined, 'Easy 7 Days Free Returns'),
+          _buildAssuranceRow(
+            Icons.assignment_return_outlined,
+            'Easy 7 Days Free Returns',
+          ),
         ],
       ),
     );
@@ -2071,18 +2094,26 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isCurrent ? const Color(0xFFFFF9FA) : Colors.white,
+                        color: isCurrent
+                            ? const Color(0xFFFFF9FA)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isCurrent ? const Color(0xFFE61858) : const Color(0xFFE4E4E7),
+                          color: isCurrent
+                              ? const Color(0xFFE61858)
+                              : const Color(0xFFE4E4E7),
                           width: isCurrent ? 1.5 : 1.0,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            isCurrent ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: isCurrent ? const Color(0xFFE61858) : const Color(0xFFA1A1AA),
+                            isCurrent
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            color: isCurrent
+                                ? const Color(0xFFE61858)
+                                : const Color(0xFFA1A1AA),
                             size: 18,
                           ),
                           const SizedBox(width: 10),
@@ -2129,7 +2160,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       Navigator.pop(ctx);
                       context.push('/add-address');
                     },
-                    icon: const Icon(Icons.add, size: 18, color: Color(0xFFE61858)),
+                    icon: const Icon(
+                      Icons.add,
+                      size: 18,
+                      color: Color(0xFFE61858),
+                    ),
                     label: const Text(
                       'Add New Address',
                       style: TextStyle(
@@ -2157,9 +2192,21 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   void _showCouponSelectionModal(BuildContext context) {
     final availableCoupons = [
-      {'code': 'FLAT200', 'discount': 200.0, 'desc': 'Flat ₹200 OFF on orders above ₹1,999'},
-      {'code': 'SAVE15', 'discount': 150.0, 'desc': 'Get 15% instant discount up to ₹150'},
-      {'code': 'FREESHIP', 'discount': 30.0, 'desc': 'Free 30-min express delivery on this order'},
+      {
+        'code': 'FLAT200',
+        'discount': 200.0,
+        'desc': 'Flat ₹200 OFF on orders above ₹1,999',
+      },
+      {
+        'code': 'SAVE15',
+        'discount': 150.0,
+        'desc': 'Get 15% instant discount up to ₹150',
+      },
+      {
+        'code': 'FREESHIP',
+        'discount': 30.0,
+        'desc': 'Free 30-min express delivery on this order',
+      },
     ];
 
     showModalBottomSheet(
@@ -2207,7 +2254,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       color: isApplied ? const Color(0xFFFEF1F6) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isApplied ? const Color(0xFFE61858) : const Color(0xFFE4E4E7),
+                        color: isApplied
+                            ? const Color(0xFFE61858)
+                            : const Color(0xFFE4E4E7),
                         width: isApplied ? 1.5 : 1.0,
                       ),
                     ),
@@ -2262,7 +2311,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: isApplied ? const Color(0xFF16A34A) : const Color(0xFFE61858),
+                              color: isApplied
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFE61858),
                             ),
                           ),
                         ),

@@ -248,7 +248,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                       rating: product.rating,
                                       reviewsCount: product.reviewsCount,
                                       weight: product.weight,
-                                      isWishlisted: wishlist.contains(product.id),
+                                      isWishlisted: wishlist.any((p) => p.id == product.id),
                                       onTap: () => context.push('/product-details', extra: {
                                         'id': product.id,
                                         'title': product.title,
@@ -272,7 +272,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                         );
                                       },
                                       onWishlistTap: () {
-                                        ref.read(wishlistProvider.notifier).toggleWishlist(product.id);
+                                        ref.read(wishlistProvider.notifier).toggleWishlist(product);
                                       },
                                     );
                                   },

@@ -91,11 +91,6 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const WishlistPage(),
         ),
         GoRoute(
-          path: '/cart',
-          name: RouteNames.cart,
-          builder: (context, state) => const CartPage(),
-        ),
-        GoRoute(
           path: '/profile',
           name: RouteNames.profile,
           builder: (context, state) => const ProfilePage(),
@@ -104,6 +99,12 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // Sub pages that should slide from right and cover bottom bar
+    GoRoute(
+      path: '/cart',
+      name: RouteNames.cart,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const CartPage(),
+    ),
     GoRoute(
       path: '/search',
       name: RouteNames.search,
@@ -216,6 +217,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/address-list',
       name: RouteNames.addressList,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AddressListPage(),
+    ),
+    GoRoute(
+      path: '/addresses',
+      name: 'addresses',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const AddressListPage(),
     ),
